@@ -8,6 +8,7 @@ const OPTIONS: Array<{ value: ThemePreference; label: string }> = [
   { value: 'system', label: 'System' },
 ];
 
+/** Small popover for switching between light/dark/system themes. */
 export function ThemeToggle() {
   const { preference, resolved, setPreference } = useTheme();
   const [open, setOpen] = useState(false);

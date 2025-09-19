@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { GrokChatMessage } from '@/api/grokClient';
 
+/**
+ * Global conversation lifecycle status values.
+ */
 export type ConversationFlowStatus =
   | 'idle'
   | 'configuring'
@@ -12,6 +15,9 @@ export type ConversationFlowStatus =
   | 'completed'
   | 'error';
 
+/**
+ * Fully-normalized participant in the session configuration.
+ */
 export interface Participant {
   id: string;
   displayName: string;
@@ -20,12 +26,18 @@ export interface Participant {
   color: string;
 }
 
+/**
+ * Input shape for creating/updating participants via forms.
+ */
 export interface ParticipantInput {
   id: string;
   persona: string;
   model: string;
 }
 
+/**
+ * User-configurable options that guide the conversation.
+ */
 export interface ConversationConfig {
   conversationType: string;
   topic: string;
@@ -37,6 +49,9 @@ export interface ConversationConfig {
   participants: Participant[];
 }
 
+/**
+ * Message stored in the transcript with additional metadata used by the UI.
+ */
 export interface ConversationMessage extends GrokChatMessage {
   id: string;
   speakerId?: string;
@@ -44,6 +59,9 @@ export interface ConversationMessage extends GrokChatMessage {
   status: 'pending' | 'streaming' | 'completed';
 }
 
+/**
+ * Zustand store that owns session configuration, transcript and runtime status.
+ */
 export interface ConversationSessionState {
   apiKey: string | null;
   rememberApiKey: boolean;
@@ -84,6 +102,9 @@ const DEFAULT_CONFIG: ConversationConfig = {
 
 const STORAGE_KEY = 'grokparty:webapp:session';
 
+/**
+ * Palette used to assign stable avatar dots per-participant.
+ */
 export const PARTICIPANT_COLORS = [
   '#f97316',
   '#0ea5e9',
@@ -119,6 +140,10 @@ function withDefaultParticipants(config: ConversationConfig): ConversationConfig
   };
 }
 
+/**
+ * Root session store with localStorage persistence for the API key (opt‑in) and defaults
+ * for at least two participants to keep screens stable.
+ */
 export const useSessionStore = create<ConversationSessionState>()(
   persist(
     (set, get) => ({
@@ -247,6 +272,9 @@ export const useSessionStore = create<ConversationSessionState>()(
   ),
 );
 
+/**
+ * Creates an empty transcript message with sensible defaults and a unique id.
+ */
 export function createEmptyMessage(partial: Partial<ConversationMessage>): ConversationMessage {
   return {
     id: createId(),
@@ -258,6 +286,7 @@ export function createEmptyMessage(partial: Partial<ConversationMessage>): Conve
   };
 }
 
+/** Returns a fresh copy of the default configuration (with two starter participants). */
 export function getDefaultConfig(): ConversationConfig {
   return clone(withDefaultParticipants(DEFAULT_CONFIG));
 }

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+/** Generic 404 page. */
 export default function NotFoundPage() {
   return (
     <section className="flex min-h-[calc(100vh-10rem)] flex-col items-center justify-center gap-4 px-6 py-12 text-center">

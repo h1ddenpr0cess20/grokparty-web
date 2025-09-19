@@ -4,6 +4,7 @@ import { AppProviders } from './AppProviders';
 import { AppErrorBoundary } from './AppErrorBoundary';
 import { appRouter } from './router';
 
+/** Root application component wiring providers, router and global UI. */
 export default function App() {
   return (
     <AppProviders>

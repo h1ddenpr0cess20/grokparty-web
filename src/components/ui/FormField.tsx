@@ -11,6 +11,9 @@ interface FormFieldProps {
   className?: string;
 }
 
+/**
+ * Label + description + error wrapper to keep form markup consistent.
+ */
 export function FormField({
   label,
   description,

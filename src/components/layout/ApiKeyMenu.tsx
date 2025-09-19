@@ -9,6 +9,9 @@ import { showToast } from '@/state/toastStore';
 
 const GROK_SIGNUP_URL = 'https://console.x.ai/';
 
+/**
+ * Header dropdown panel for adding/removing the user's Grok API key.
+ */
 export function ApiKeyMenu() {
   const { apiKey, rememberApiKey, setApiKey, clearApiKey } = useApiKey();
   const isApiKeyMenuOpen = useUiStore((state) => state.isApiKeyMenuOpen);

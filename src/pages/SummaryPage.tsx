@@ -2,6 +2,9 @@ import { TranscriptActions } from '@/features/conversation/TranscriptActions';
 import { useParticipantsMap } from '@/state/sessionSelectors';
 import { useSessionStore } from '@/state/sessionStore';
 
+/**
+ * Review screen summarizing the last conversation and exposing transcript export.
+ */
 export default function SummaryPage() {
   const messages = useSessionStore((state) => state.messages);
   const config = useSessionStore((state) => state.config);

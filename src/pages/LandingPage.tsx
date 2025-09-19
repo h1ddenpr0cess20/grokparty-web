@@ -4,6 +4,7 @@ import { useApiKey } from '@/features/session/apiKey';
 import { useUiStore } from '@/state/uiStore';
 import { showToast } from '@/state/toastStore';
 
+/** Marketing-style welcome screen with quick actions. */
 export default function LandingPage() {
   const navigate = useNavigate();
   const { apiKey, rememberApiKey } = useApiKey();

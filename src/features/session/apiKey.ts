@@ -2,6 +2,9 @@ import { useCallback } from 'react';
 import { useSessionStore } from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
+/**
+ * Hook for reading/updating the Grok API key with optional persistence.
+ */
 export function useApiKey() {
   const apiKey = useSessionStore((state) => state.apiKey);
   const rememberApiKey = useSessionStore((state) => state.rememberApiKey);

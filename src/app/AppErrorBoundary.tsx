@@ -9,6 +9,9 @@ interface State {
   hasError: boolean;
 }
 
+/**
+ * Catches unhandled React errors to keep the app usable and inform the user.
+ */
 export class AppErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 

@@ -10,6 +10,9 @@ export interface StepperProps {
   activeStep: string;
 }
 
+/**
+ * Horizontal step indicator showing progress through a small wizard.
+ */
 export function Stepper({ steps, activeStep }: StepperProps) {
   return (
     <ol className="flex flex-wrap items-center gap-4">

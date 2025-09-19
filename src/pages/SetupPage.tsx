@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { SetupWizard } from '@/features/setup/SetupWizard';
 import { useApiKey } from '@/features/session/apiKey';
 
+/** Standalone page hosting the multi-step setup wizard. */
 export default function SetupPage() {
   const { apiKey } = useApiKey();
 

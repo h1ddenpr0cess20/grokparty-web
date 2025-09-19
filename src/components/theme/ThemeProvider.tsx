@@ -3,6 +3,7 @@ import { ThemeContext, type ThemeContextValue, type ThemePreference } from './Th
 
 const STORAGE_KEY = 'grokparty:webapp:theme';
 
+/** Provides theme context and syncs CSS variables to the DOM. */
 export function ThemeProvider({ children }: PropsWithChildren) {
   const [preference, setPreference] = useState<ThemePreference>(() => {
     if (typeof window === 'undefined') {

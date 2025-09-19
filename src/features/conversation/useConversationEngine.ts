@@ -3,6 +3,10 @@ import { ConversationEngine } from './conversationEngine';
 import { useGrokClient } from '@/api/useGrokClient';
 import { useSessionStore } from '@/state/sessionStore';
 
+/**
+ * Hook exposing a memoized ConversationEngine and convenience methods bound to the
+ * current API key from the session store.
+ */
 export function useConversationEngine() {
   const client = useGrokClient();
   const apiKey = useSessionStore((state) => state.apiKey);

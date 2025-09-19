@@ -2,6 +2,10 @@ import '@testing-library/jest-dom/vitest';
 import 'whatwg-fetch';
 import { vi } from 'vitest';
 
+/**
+ * Vitest environment bootstrap: polyfills and DOM API shims for jsdom.
+ */
+
 if (!window.matchMedia) {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,

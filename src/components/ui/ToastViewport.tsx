@@ -12,6 +12,9 @@ const VARIANT_CLASSES: Record<string, string> = {
     'border-rose-400 bg-rose-50 text-rose-900 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200',
 };
 
+/**
+ * Renders transient toast notifications and auto-dismisses them after durationMs.
+ */
 export function ToastViewport() {
   const toasts = useToastStore((state) => state.toasts);
   const dismiss = useToastStore((state) => state.dismiss);

@@ -10,6 +10,7 @@ export interface ThemeContextValue {
 
 export const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+/** Hook to read/update theme preference from context. */
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {

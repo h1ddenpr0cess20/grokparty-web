@@ -3,6 +3,7 @@ import { ConversationTranscript } from '@/features/conversation/ConversationTran
 import { TranscriptActions } from '@/features/conversation/TranscriptActions';
 import { useSessionStore } from '@/state/sessionStore';
 
+/** Main run screen showing controls, transcript and session details. */
 export default function ConversationPage() {
   const config = useSessionStore((state) => state.config);
   const topicDisplay = config.topic?.trim() || 'anything';

@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { useConversationMessages, useParticipantsMap } from '@/state/sessionSelectors';
 
+/**
+ * Live transcript view that auto-scrolls as new messages stream in.
+ */
 export function ConversationTranscript() {
   const messages = useConversationMessages();
   const participants = useParticipantsMap();

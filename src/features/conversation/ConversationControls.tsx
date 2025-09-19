@@ -4,6 +4,9 @@ import { useSessionStatus } from '@/state/sessionSelectors';
 import { useSessionStore } from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
+/**
+ * Primary controls for starting, pausing/resuming and stopping a session run.
+ */
 export function ConversationControls() {
   const status = useSessionStatus();
   const setStatus = useSessionStore((state) => state.setStatus);

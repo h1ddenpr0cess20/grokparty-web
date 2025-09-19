@@ -5,6 +5,7 @@ import LandingPage from '@/pages/LandingPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import SetupPage from '@/pages/SetupPage';
 
+/** Centralized route configuration used by <RouterProvider/>. */
 export const appRouter = createBrowserRouter(
   createRoutesFromElements(
     <Route element={<AppLayout />}>

@@ -1,80 +1,21 @@
 # GrokParty Web
 
-Browser-based companion for hosting multi-character conversations on the Grok API. GrokParty Web lets you manage personas, launch live chat sessions, and export transcripts without running your own backend services.
+GrokParty Web is a browser app for orchestrating Grok-powered multi-speaker sessions. Assemble persona panels to pressure-test product ideas, rehearse support conversations, run research interviews, or capture transcripts for creative teams—no backend required.
 
-## Features
-- Configure conversations end-to-end: persona authoring, scenario settings, Grok model selection, search controls, and launch review.
-- Stream multi-speaker dialogue directly from the Grok API with pause/resume controls and status-aware UI cues.
-- Persist key session data locally with sensible defaults; remember API keys securely per device when requested.
-- Export transcripts (conversation plus configuration) as JSON for archival or tooling handoff.
-- Responsive, theme-aware interface using a11y-focused defaults and smooth transcript scrolling.
+## Quick Start
+- Requires Node.js 20+ and npm 10 (bundled with Node 20).
+- Install dependencies with `npm install`.
+- Create an optional `.env` containing `VITE_GROK_API_BASE` to target a non-default Grok endpoint.
+- Launch the dev server with `npm run dev` and open http://localhost:5173.
 
-## Tech Stack
-- React 19 + TypeScript + Vite for fast, typed application development.
-- Zustand for lightweight, colocated state management with persistence helpers.
-- Tailwind CSS and custom design tokens for theming.
-- React Router for client-side navigation.
-- Vitest + Testing Library + MSW-ready setup for unit and integration coverage.
+## Useful Scripts
+- `npm run build` – produce an optimized bundle in `dist/`.
+- `npm run preview` – smoke-test the built assets locally.
+- `npm run lint` / `npm run format` / `npm run test` – static analysis, formatting, and unit/integration tests.
+- `npm run docs:api` – generate API reference docs from TSDoc into `docs/api`.
 
-## Getting Started
-### Prerequisites
-- Node.js 20.x (LTS) or newer
-- npm 10.x (bundled with Node 20)
-
-### Installation
-```bash
-npm install
-```
-
-### Environment
-The app talks to the Grok API via a configurable base URL. You can set this at build time with Vite environment variables.
-
-Create a `.env` file (or use your hosting provider's env settings) and set:
-```bash
-VITE_GROK_API_BASE=https://api.x.ai/v1
-```
-If omitted, the default above is used.
-
-### Development Server
-```bash
-npm run dev
-```
-This launches Vite with hot module reloading at http://localhost:5173.
-
-### Production Build
-```bash
-npm run build
-npm run preview # optional smoke test of the build output
-```
-The optimized assets land in `dist/`.
-
-## Project Structure
-```
-├── public/                Static assets served as-is
-├── src/
-│   ├── api/               Grok client, context, and provider
-│   ├── app/               Top-level routing, providers, and error boundary
-│   ├── components/        Reusable UI + layout primitives
-│   ├── features/          Feature-oriented modules (conversation, session, setup)
-│   ├── pages/             Route-level screens
-│   ├── state/             Zustand stores and selectors
-│   ├── styles/            Global style helpers
-│   └── test/              Vitest setup and test suites
-├── docs/                  Additional documentation (architecture, processes)
-├── vite.config.ts         Vite + Vitest configuration
-└── tailwind.config.js     Tailwind theme extensions
-```
-
-## Application Architecture
-- **Conversation engine** (`src/features/conversation/conversationEngine.ts`): orchestrates streaming chat, speaker rotation, and message state transitions.
-- **Session state** (`src/state/sessionStore.ts`): central store for configuration, messages, and flow status with persistence.
-- **UI composition**: `AppProviders` wires theme + API client context; `AppLayout` exposes navigation, status, API key management, and theme toggle.
-- **API access** (`src/api/grokClient.ts`): typed client with graceful fallbacks, streaming helpers, and model listing.
-
-More design notes live in `docs/architecture.md`.
-
-## Quality Tooling
-- `npm run lint` – ESLint with TypeScript awareness and Tailwind plugin.
-- `npm run format` – Prettier with Tailwind-class sorting.
-- `npm run test` – Vitest in CI mode (jsdom, Testing Library, jest-dom matchers).
-- `npm run test:watch` – Interactive test loop.
+## Documentation
+- [Getting started guide](docs/getting-started.md)
+- [Architecture overview](docs/architecture.md)
+- [Testing strategy](docs/testing.md)
+- API Reference (generate locally with `npm run docs:api` into `docs/api`)

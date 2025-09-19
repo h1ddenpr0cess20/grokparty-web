@@ -53,9 +53,14 @@ const DEFAULT_TYPES = [
 const DEFAULT_MOODS = ['friendly', 'serious', 'chaotic', 'thoughtful', 'playful'];
 
 interface SetupWizardProps {
+  /** Called after saving configuration and navigating to the conversation page. */
   onCompleted?: () => void;
 }
 
+/**
+ * Multi-step form for configuring a GrokParty session.
+ * Persists values into the session store and normalizes participants before launch.
+ */
 export function SetupWizard({ onCompleted }: SetupWizardProps) {
   const navigate = useNavigate();
   const config = useSessionStore((state) => state.config);

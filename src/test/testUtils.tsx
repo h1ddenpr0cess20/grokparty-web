@@ -4,6 +4,7 @@ import { GrokClientContext } from '@/api/grokClientContext';
 import type { GrokClient, GrokModel, GrokChatResponse, GrokStreamEvent } from '@/api/grokClient';
 import { useSessionStore, getDefaultConfig } from '@/state/sessionStore';
 
+/** Clears persisted state and resets the session store to defaults. */
 export function resetSessionStore() {
   localStorage.clear();
   const defaultConfig = getDefaultConfig();
@@ -23,6 +24,7 @@ interface RenderOptions {
   wrapper?: ComponentType<PropsWithChildren>;
 }
 
+/** Renders a component tree with a mocked GrokClient in context. */
 export function renderWithClient(ui: ReactElement, options: RenderOptions = {}) {
   const { client = {} as GrokClient, wrapper: OuterWrapper } = options;
   const provider = ({ children }: PropsWithChildren) => (
@@ -33,6 +35,7 @@ export function renderWithClient(ui: ReactElement, options: RenderOptions = {}) 
   return render(ui, { wrapper: provider });
 }
 
+/** Factory for a minimal GrokClient mock suitable for tests. */
 export function createMockClient(overrides: Partial<GrokClient> = {}): GrokClient {
   const base: GrokClient = {
     listModels: async () => [] as GrokModel[],

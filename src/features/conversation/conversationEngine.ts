@@ -3,9 +3,18 @@ import { useSessionStore, type ConversationConfig, type Participant } from '@/st
 import { showToast } from '@/state/toastStore';
 
 interface ConversationEngineOptions {
+  /** Grok API client used to create and stream completions. */
   client: GrokClient;
 }
 
+/**
+ * Orchestrates a multi‑participant conversation loop against the Grok API.
+ *
+ * Responsibilities
+ * - Drives a streaming turn loop while updating the session store in real time
+ * - Handles pause/resume/stop with safe checkpoints between requests
+ * - Chooses the next speaker using a model, falling back to randomness on failure
+ */
 export class ConversationEngine {
   private readonly client: GrokClient;
   private abort = false;
@@ -19,6 +28,9 @@ export class ConversationEngine {
     this.client = options.client;
   }
 
+  /**
+   * Starts the conversation loop. No‑ops if already running.
+   */
   async start(apiKey: string) {
     if (this.running) {
       return this.loopPromise;
@@ -114,6 +126,7 @@ export class ConversationEngine {
     return this.loopPromise;
   }
 
+  /** Requests that the engine pause at the next safe checkpoint. */
   pause() {
     if (!this.running || this.paused || this.pauseRequested) {
       return;
@@ -123,6 +136,7 @@ export class ConversationEngine {
     this.pauseRequested = true;
   }
 
+  /** Resumes a paused conversation. */
   resume() {
     if (!this.running || !this.paused) {
       return;
@@ -132,6 +146,7 @@ export class ConversationEngine {
     useSessionStore.getState().setStatus('streaming');
   }
 
+  /** Stops the current run and marks the session completed. */
   stop() {
     if (!this.running) {
       return;
@@ -143,14 +158,19 @@ export class ConversationEngine {
     useSessionStore.getState().setStatus('completed');
   }
 
+  /** Returns true while the engine is actively running. */
   isRunning() {
     return this.running;
   }
 
+  /** Returns true when the engine is paused. */
   isPaused() {
     return this.paused;
   }
 
+  /**
+   * Emits a single message for the given speaker, streaming tokens into the transcript.
+   */
   private async emitMessage({
     apiKey,
     config,
@@ -231,6 +251,7 @@ export class ConversationEngine {
     }
   }
 
+  /** Picks the next speaker, using a model or fallback randomness. */
   private async chooseNextSpeaker({
     apiKey,
     config,

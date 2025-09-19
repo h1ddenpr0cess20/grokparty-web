@@ -17,6 +17,9 @@ interface ToastState {
   clear: () => void;
 }
 
+/**
+ * Simple global toast store used by a viewport component to render notifications.
+ */
 export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
   push: (toast) => {
@@ -40,6 +43,9 @@ export const useToastStore = create<ToastState>((set) => ({
   clear: () => set({ toasts: [] }),
 }));
 
+/**
+ * Convenience helper to display a toast without subscribing to the store.
+ */
 export function showToast(toast: Omit<ToastMessage, 'id'>) {
   return useToastStore.getState().push(toast);
 }

@@ -4,6 +4,9 @@ import type { InputHTMLAttributes } from 'react';
 
 export type InputProps = InputHTMLAttributes<HTMLInputElement>;
 
+/**
+ * Styled text input with forwarded ref for focus management.
+ */
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { className, type = 'text', ...props },
   ref,

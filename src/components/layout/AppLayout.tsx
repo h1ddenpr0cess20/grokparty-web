@@ -10,6 +10,9 @@ const NAV_ITEMS = [
   { to: '/conversation', label: 'Conversation' },
 ];
 
+/**
+ * Top-level shell containing header, routed content and footer.
+ */
 export function AppLayout() {
   const status = useSessionStore((state) => state.status);
 

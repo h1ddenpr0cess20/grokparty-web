@@ -4,9 +4,13 @@ import type { ButtonHTMLAttributes } from 'react';
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Visual treatment of the button. Default is "primary". */
   variant?: ButtonVariant;
 }
 
+/**
+ * Small, theme-aware button used throughout the app.
+ */
 export function Button({ className, variant = 'primary', type = 'button', ...props }: ButtonProps) {
   return (
     <button

@@ -2,6 +2,15 @@
 
 GrokParty Web is a client-only React application that orchestrates multi-character conversations against the Grok API. The codebase is organized around feature folders with shared infrastructure for state, theming, and API access.
 
+## Module Map
+- `src/app` – Router, root App, providers, and error boundary.
+- `src/api` – GrokClient wrapper, React provider/context, hooks, and tests.
+- `src/components` – Reusable UI primitives, layout, theme context/provider/toggle.
+- `src/features` – Feature slices (`setup`, `conversation`, `session`).
+- `src/pages` – Route-level screens that compose features.
+- `src/state` – Zustand stores, selectors, and toast helpers.
+- `src/test` – Test setup and render helpers.
+
 ## Layered Overview
 - **UI Shell (`src/app` + `src/components`)**: Provides routing, theming, and layout primitives. `AppProviders` wires context providers, while `AppLayout` supplies navigation, status, API key management, and the global toast viewport.
 - **Feature Modules (`src/features`)**: Self-contained vertical slices (session, setup, conversation) that compose UI, hooks, and domain logic.
@@ -58,3 +67,4 @@ GrokParty Web is a client-only React application that orchestrates multi-charact
 - Introduce MSW handlers in `src/test` for deterministic API simulations once server interactions expand.
 - Instrument analytics hooks or logging sinks inside `ConversationEngine` for deeper observability.
 - Expand docs with screen-level walkthroughs (`docs/ui-guide.md`) as the UI stabilizes.
+ - Publish generated API reference (`docs/api`) via static hosting.

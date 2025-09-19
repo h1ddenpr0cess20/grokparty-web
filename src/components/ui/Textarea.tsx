@@ -3,6 +3,7 @@ import type { TextareaHTMLAttributes } from 'react';
 
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
 
+/** Styled textarea with sensible defaults. */
 export function Textarea({ className, rows = 4, ...props }: TextareaProps) {
   return (
     <textarea

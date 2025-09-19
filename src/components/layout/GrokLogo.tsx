@@ -5,6 +5,7 @@ interface GrokLogoProps {
   title?: string;
 }
 
+/** Brand mark used in the app header. */
 export function GrokLogo({ className, title = 'GrokParty' }: GrokLogoProps) {
   const ringGradientId = useId();
   const accentGradientId = useId();

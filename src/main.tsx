@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 import App from '@/app/App';
 import '@/index.css';
 
+/**
+ * Entrypoint: mounts the React app with strict mode and global styles.
+ */
+
 declare global {
   interface WindowEventMap {
     'app:toggle-theme': CustomEvent<{ theme: 'light' | 'dark' }>;

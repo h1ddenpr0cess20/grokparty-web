@@ -5,6 +5,11 @@ import { useSessionStore } from '@/state/sessionStore';
 
 export type ModelsStatus = 'idle' | 'loading' | 'success' | 'error';
 
+/**
+ * Fetches and caches available Grok models for selection in the setup flow.
+ * Automatically falls back to a static list when the user has no API key or the
+ * network call fails.
+ */
 export function useGrokModels() {
   const client = useGrokClient();
   const apiKey = useSessionStore((state) => state.apiKey);

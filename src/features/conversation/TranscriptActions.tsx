@@ -1,6 +1,9 @@
 import { Button } from '@/components/ui/Button';
 import { useSessionStore } from '@/state/sessionStore';
 
+/**
+ * Actions for exporting the current transcript with configuration metadata.
+ */
 export function TranscriptActions() {
   const messages = useSessionStore((state) => state.messages);
   const config = useSessionStore((state) => state.config);

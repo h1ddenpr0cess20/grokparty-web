@@ -12,6 +12,7 @@
     "test:watch": "vitest watch",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "docs:api": "typedoc --options typedoc.json",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -54,6 +55,7 @@
     "typescript-eslint": "^8.43.0",
     "vite": "^7.1.6",
     "vitest": "^3.2.4",
-    "whatwg-fetch": "^3.6.20"
+    "whatwg-fetch": "^3.6.20",
+    "typedoc": "^0.26.7"
   }
 }

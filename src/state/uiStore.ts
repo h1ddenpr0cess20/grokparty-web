@@ -7,6 +7,9 @@ interface ApiKeyMenuState {
   toggleApiKeyMenu: () => void;
 }
 
+/**
+ * Lightweight UI store for ephemeral state that does not belong in React component state.
+ */
 export const useUiStore = create<ApiKeyMenuState>((set) => ({
   isApiKeyMenuOpen: false,
   openApiKeyMenu: () => set({ isApiKeyMenuOpen: true }),

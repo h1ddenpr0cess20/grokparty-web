@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
+/**
+ * Public model metadata returned by the Grok API.
+ */
+
 const DEFAULT_BASE_URL = import.meta.env.VITE_GROK_API_BASE ?? 'https://api.x.ai/v1';
 
+/**
+ * Static list used when the API is unreachable or returns an unexpected payload.
+ */
 export const FALLBACK_MODELS: GrokModel[] = [
   { id: 'grok-4', name: 'Grok 4' },
   { id: 'grok-3-mini', name: 'Grok 3 Mini' },
@@ -10,11 +17,17 @@ export const FALLBACK_MODELS: GrokModel[] = [
   { id: 'grok-3', name: 'Grok 3' },
 ];
 
+/**
+ * Options for constructing a GrokClient instance.
+ */
 export interface GrokClientOptions {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
 }
 
+/**
+ * Basic description of a Grok model.
+ */
 export interface GrokModel {
   id: string;
   name: string;
@@ -24,12 +37,18 @@ export interface GrokModel {
 
 export type GrokRole = 'system' | 'user' | 'assistant';
 
+/**
+ * Single message in a chat transcript sent to/received from the Grok API.
+ */
 export interface GrokChatMessage {
   role: GrokRole;
   content: string;
   name?: string;
 }
 
+/**
+ * Request body for chat completions.
+ */
 export interface GrokChatRequest {
   model: string;
   messages: GrokChatMessage[];
@@ -39,11 +58,17 @@ export interface GrokChatRequest {
   stream?: boolean;
 }
 
+/**
+ * One choice from a non-streaming completion.
+ */
 export interface GrokCompletionChoice {
   message: GrokChatMessage;
   finish_reason: string | null;
 }
 
+/**
+ * Response for a non-streaming chat completion.
+ */
 export interface GrokChatResponse {
   id: string;
   model: string;
@@ -52,6 +77,9 @@ export interface GrokChatResponse {
   choices: GrokCompletionChoice[];
 }
 
+/**
+ * Discriminated union of streaming events from the Grok API.
+ */
 export type GrokStreamEvent =
   | { type: 'chunk'; delta: string; raw: GrokChatCompletionChunk }
   | { type: 'message'; message: GrokChatMessage; raw: GrokChatCompletionChunk }
@@ -96,6 +124,12 @@ const DEFAULT_SEARCH_PARAMETERS = {
   ],
 };
 
+/**
+ * Thin wrapper around the Grok REST API with helpers for streaming chat completions.
+ *
+ * - Uses `fetch` by default but accepts a custom implementation for testing.
+ * - Provides graceful fallbacks when streaming is unavailable or responses are malformed.
+ */
 export class GrokClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
@@ -105,6 +139,10 @@ export class GrokClient {
     this.fetchImpl = options.fetchImpl ?? fetch.bind(globalThis);
   }
 
+  /**
+   * Returns the list of available models for the provided API key.
+   * Falls back to a static list when the request fails or the payload is invalid.
+   */
   async listModels(apiKey: string): Promise<GrokModel[]> {
     try {
       const response = await this.fetchImpl(`${this.baseUrl}/models`, {
@@ -134,6 +172,9 @@ export class GrokClient {
     }
   }
 
+  /**
+   * Performs a non-streaming completion request and returns the full response.
+   */
   async createChatCompletion(apiKey: string, request: GrokChatRequest): Promise<GrokChatResponse> {
     const response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
@@ -154,6 +195,10 @@ export class GrokClient {
     return (await response.json()) as GrokChatResponse;
   }
 
+  /**
+   * Streams a chat completion as server‑sent events, yielding incremental tokens and a final message.
+   * Falls back to a non‑streaming request when the server does not support streaming.
+   */
   async *streamChatCompletion(
     apiKey: string,
     request: GrokChatRequest,
@@ -246,6 +291,9 @@ export class GrokClient {
     yield { type: 'done' };
   }
 
+  /**
+   * Constructs standard headers for Grok API calls.
+   */
   private createHeaders(apiKey: string): HeadersInit {
     return {
       Authorization: `Bearer ${apiKey}`,
@@ -254,6 +302,10 @@ export class GrokClient {
   }
 }
 
+/**
+ * Converts a non-streaming completion response into a single "chunk" payload shape
+ * so downstream consumers can handle both streaming and non-streaming uniformly.
+ */
 function chunkFromResponse(response: GrokChatResponse): GrokChatCompletionChunk {
   return {
     id: response.id,
@@ -267,6 +319,9 @@ function chunkFromResponse(response: GrokChatResponse): GrokChatCompletionChunk 
   } satisfies GrokChatCompletionChunk;
 }
 
+/**
+ * Creates a descriptive HTTP error with a trimmed payload for logging/toast display.
+ */
 function createHttpError(status: number, payload: string): Error {
   const detail = payload?.slice?.(0, 400) ?? 'Unknown error';
   return new Error(`Grok API request failed (${status}): ${detail}`);

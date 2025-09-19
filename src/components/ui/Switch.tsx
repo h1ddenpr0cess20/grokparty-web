@@ -2,10 +2,13 @@ import clsx from 'clsx';
 import type { ButtonHTMLAttributes, KeyboardEvent, MouseEvent } from 'react';
 
 export interface SwitchProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
+  /** Whether the switch is on. */
   checked?: boolean;
+  /** Optional label rendered to the right of the thumb. */
   label?: string;
 }
 
+/** Accessible, keyboard-friendly switch component. */
 export function Switch({
   checked = false,
   className,
