@@ -22,6 +22,18 @@ describe('sessionStore', () => {
     expect(participants[1].color).toBe(PARTICIPANT_COLORS[1]);
   });
 
+  it('keeps emoji-only personas as display names', () => {
+    const store = useSessionStore.getState();
+    store.setParticipants([
+      { id: 'p1', persona: '😄', model: 'grok-4' },
+      { id: 'p2', persona: '😀 The cheerful one', model: 'grok-4' },
+    ]);
+
+    const participants = useSessionStore.getState().config.participants;
+    expect(participants[0].displayName).toBe('😄');
+    expect(participants[1].displayName).toBe('😀 The cheerful one');
+  });
+
   it('pads participants after removal to maintain minimum count', () => {
     const store = useSessionStore.getState();
     store.setParticipants([

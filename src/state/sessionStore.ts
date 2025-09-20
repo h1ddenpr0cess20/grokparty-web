@@ -319,13 +319,27 @@ function deriveDisplayName(persona: string, index: number): string {
   }
 
   const primary = persona.split(/[.!?\n\r]/)[0]?.trim() ?? persona;
-  const cleaned = primary.replace(/^[^A-Za-z0-9]+/, '').trim();
+  const cleaned = stripLeadingPersonaArtifacts(primary);
 
   if (!cleaned) {
     return `Character ${index + 1}`;
   }
 
   return cleaned.length > 36 ? `${cleaned.slice(0, 33).trimEnd()}…` : cleaned;
+}
+
+function stripLeadingPersonaArtifacts(value: string): string {
+  let result = value.trimStart();
+
+  const numberedListPrefix = result.match(/^\d{1,3}(?:\s*[-.:)\]])\s*/u);
+  if (numberedListPrefix) {
+    result = result.slice(numberedListPrefix[0].length);
+  }
+
+  result = result.replace(/^(?:[-*•]{1,3})\s*/u, '');
+  result = result.replace(/^["'“”‘’`]+/u, '').trimStart();
+
+  return result.trim();
 }
 
 function clone<T>(value: T): T {
