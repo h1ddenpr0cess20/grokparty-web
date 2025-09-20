@@ -37,20 +37,24 @@ export function renderWithClient(ui: ReactElement, options: RenderOptions = {}) 
 
 /** Factory for a minimal GrokClient mock suitable for tests. */
 export function createMockClient(overrides: Partial<GrokClient> = {}): GrokClient {
-  const base: GrokClient = {
-    listModels: async () => [] as GrokModel[],
-    createChatCompletion: async () =>
-      ({
+  const base = {
+    async listModels(_apiKey: string) {
+      return [] as GrokModel[];
+    },
+    async createChatCompletion(_apiKey: string, _request: unknown) {
+      return {
         id: 'mock-response',
         model: 'mock',
         created: Date.now(),
         object: 'chat.completion',
         choices: [],
-      }) as GrokChatResponse,
-    async *streamChatCompletion() {
+      } as GrokChatResponse;
+    },
+    async *streamChatCompletion(_apiKey: string, _request: unknown, _signal?: AbortSignal) {
       yield { type: 'done' } as GrokStreamEvent;
     },
-  } as GrokClient;
+  } satisfies Partial<GrokClient>;
 
-  return Object.assign(base, overrides);
+  // Cast through unknown to satisfy the class type (which has private members)
+  return Object.assign({} as unknown as GrokClient, base, overrides);
 }
