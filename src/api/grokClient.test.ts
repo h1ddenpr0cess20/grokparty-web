@@ -31,6 +31,61 @@ describe('GrokClient', () => {
     ]);
   });
 
+  it('filters out grok-2 family models from the API response', async () => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: 'grok-4',
+            name: 'Grok 4',
+          },
+          {
+            id: 'grok-2',
+            name: 'Grok 2',
+          },
+          {
+            id: 'grok-2-mini',
+            name: 'Grok 2 Mini',
+          },
+        ],
+      }),
+    })) as unknown as typeof global.fetch;
+
+    const client = new GrokClient({ fetchImpl: fetch });
+    const models = await client.listModels('sk-test');
+
+    expect(models).toEqual([
+      {
+        id: 'grok-4',
+        name: 'Grok 4',
+      },
+    ]);
+  });
+
+  it('returns fallbacks when only grok-2 models are available', async () => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: 'grok-2',
+            name: 'Grok 2',
+          },
+          {
+            id: 'grok-2-mini',
+            name: 'Grok 2 Mini',
+          },
+        ],
+      }),
+    })) as unknown as typeof global.fetch;
+
+    const client = new GrokClient({ fetchImpl: fetch });
+    const models = await client.listModels('sk-test');
+
+    expect(models).toEqual(FALLBACK_MODELS);
+  });
+
   it('falls back to default models on error', async () => {
     const fetch = vi.fn(async () => ({
       ok: false,

@@ -160,7 +160,13 @@ export class GrokClient {
         return FALLBACK_MODELS;
       }
 
-      return parsed.data.data.map((model) => ({
+      const filteredModels = parsed.data.data.filter((model) => !model.id.startsWith('grok-2'));
+
+      if (filteredModels.length === 0) {
+        return FALLBACK_MODELS;
+      }
+
+      return filteredModels.map((model) => ({
         id: model.id,
         name: model.name ?? model.id,
         description: model.description,
