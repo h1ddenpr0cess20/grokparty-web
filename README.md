@@ -29,3 +29,7 @@ During a session, real-time responses stream into a conversation timeline beside
 ## Documentation
 - [Getting started guide](docs/getting-started.md)
 - [Architecture overview](docs/architecture.md)
+
+## Disclaimers
+- [AI Output Disclaimer](docs/ai-output-disclaimer.md) - Important information about the limitations of AI-generated content and allocation of responsibility
+- [Not a Companion Policy](docs/not-a-companion.md) - GrokParty is a tool for creativity, productivity, and learning, not for companionship or simulated relationships

@@ -54,6 +54,29 @@ export function AppLayout() {
       <footer className="border-t border-border/60 bg-surface/80">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between p-4 text-xs text-muted">
           <span>© {new Date().getFullYear()} GrokParty</span>
+          <div className="flex flex-col items-center">
+            <span className="mb-1">
+              AI-generated content may contain errors. Verify important information.
+            </span>
+            <div className="flex gap-3">
+              <a 
+                href="https://github.com/h1ddenpr0cess20/grokparty-web/blob/main/docs/ai-output-disclaimer.md" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                AI disclaimer
+              </a>
+              <a 
+                href="https://github.com/h1ddenpr0cess20/grokparty-web/blob/main/docs/not-a-companion.md" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Not a companion
+              </a>
+            </div>
+          </div>
           <span>Built with Vite + React</span>
         </div>
       </footer>
