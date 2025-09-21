@@ -43,6 +43,7 @@ export interface ConversationConfig {
   topic: string;
   setting: string;
   mood: string;
+  userName?: string;
   temperature: number;
   enableSearch: boolean;
   decisionModel: string;
@@ -94,6 +95,7 @@ const DEFAULT_CONFIG: ConversationConfig = {
   topic: '',
   setting: '',
   mood: 'friendly',
+  userName: '',
   temperature: 0.8,
   enableSearch: true,
   decisionModel: 'grok-4',
