@@ -23,6 +23,7 @@ const WIZARD_SCHEMA = z.object({
   topic: z.string().trim(),
   setting: z.string().trim(),
   mood: z.string().min(1, 'Mood is required'),
+  userName: z.string().trim().max(48).optional(),
   temperature: z.number().min(0).max(2),
   enableSearch: z.boolean(),
   decisionModel: z.string().min(1, 'Choose a decision model'),
@@ -50,7 +51,7 @@ const DEFAULT_TYPES = [
   'therapy',
 ];
 
-const DEFAULT_MOODS = ['friendly', 'serious', 'chaotic', 'thoughtful', 'playful'];
+const DEFAULT_MOODS = ['friendly', 'serious', 'chaotic', 'thoughtful', 'playful', 'hostile'];
 
 interface SetupWizardProps {
   /** Called after saving configuration and navigating to the conversation page. */
@@ -111,6 +112,7 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
       topic,
       setting,
       mood: values.mood,
+      userName: values.userName?.trim() || '',
       temperature: values.temperature,
       enableSearch: values.enableSearch,
       decisionModel: values.decisionModel,
@@ -169,7 +171,7 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
 }
 
 const stepFieldMap: Record<StepId, (keyof WizardValues)[]> = {
-  scenario: ['conversationType', 'mood', 'temperature', 'enableSearch'],
+  scenario: ['conversationType', 'mood', 'temperature', 'enableSearch', 'userName'],
   participants: ['participants', 'decisionModel'],
   review: [],
 };
@@ -256,6 +258,19 @@ function ScenarioStep({ form }: ScenarioStepProps) {
           </FormField>
         )}
       />
+      <>
+        <FormField
+          label="Your name"
+          description="Optional. Participants will use this when responding to you."
+          error={errors.userName?.message}
+        >
+          <Input
+            {...register('userName')}
+            maxLength={48}
+            placeholder="What should they call you?"
+          />
+        </FormField>
+      </>
     </section>
   );
 }
@@ -394,6 +409,10 @@ function ReviewStep({ values, models }: ReviewStepProps) {
             <dd>{capitalize(values.mood)}</dd>
           </div>
           <div>
+            <dt className="font-semibold text-foreground">Your name</dt>
+            <dd>{values.userName?.trim() || '—'}</dd>
+          </div>
+          <div>
             <dt className="font-semibold text-foreground">Temperature</dt>
             <dd>{values.temperature.toFixed(1)}</dd>
           </div>
@@ -481,6 +500,7 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
     topic: topic && topic.toLowerCase() !== 'anything' ? topic : '',
     setting: setting && setting.toLowerCase() !== 'anywhere' ? setting : '',
     mood: config.mood ?? 'friendly',
+    userName: config.userName?.trim() ?? '',
     temperature: config.temperature ?? 0.8,
     enableSearch: config.enableSearch ?? true,
     decisionModel,

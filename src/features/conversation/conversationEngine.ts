@@ -23,6 +23,10 @@ export class ConversationEngine {
   private running = false;
   private loopPromise: Promise<void> | null = null;
   private currentController: AbortController | null = null;
+  private history: string[] = [];
+  private pendingUserMessages: string[] = [];
+  private skipDelayNextTurn = false;
+  private userDisplayName = 'User';
 
   constructor(options: ConversationEngineOptions) {
     this.client = options.client;
@@ -52,12 +56,16 @@ export class ConversationEngine {
     this.paused = false;
     this.running = true;
 
+    this.userDisplayName = config.userName?.trim() || 'User';
+
     state.clearMessages();
     state.setStatus('connecting');
     state.setSessionId(createId());
 
     const participants = config.participants;
-    const history: string[] = [];
+    this.history = [];
+    this.pendingUserMessages = [];
+    this.skipDelayNextTurn = false;
     let currentSpeaker = pickInitialSpeaker(participants);
 
     const runLoop = async () => {
@@ -66,37 +74,64 @@ export class ConversationEngine {
           apiKey,
           config,
           speaker: currentSpeaker,
-          history,
           isFirst: true,
         });
 
         while (!this.abort) {
-          await waitFor(1500);
+          if (this.skipDelayNextTurn) {
+            this.skipDelayNextTurn = false;
+          } else {
+            await waitFor(1500);
+          }
+
           await this.waitIfPaused();
           if (this.abort) {
             break;
           }
 
-          currentSpeaker = await this.chooseNextSpeaker({
-            apiKey,
-            config,
-            participants,
-            history,
-            currentSpeaker,
-          });
+          this.consumePendingUserMessages();
+
+          let nextSpeaker: Participant | null = null;
+
+          while (!this.abort && !nextSpeaker) {
+            nextSpeaker = await this.chooseNextSpeaker({
+              apiKey,
+              config,
+              participants,
+              currentSpeaker,
+            });
+
+            await this.waitIfPaused();
+            if (this.abort) {
+              break;
+            }
+
+            if (this.consumePendingUserMessages()) {
+              nextSpeaker = null;
+            }
+          }
+
+          if (this.abort || !nextSpeaker) {
+            break;
+          }
 
           await this.waitIfPaused();
           if (this.abort) {
             break;
+          }
+
+          if (this.consumePendingUserMessages()) {
+            continue;
           }
 
           await this.emitMessage({
             apiKey,
             config,
-            speaker: currentSpeaker,
-            history,
+            speaker: nextSpeaker,
             isFirst: false,
           });
+
+          currentSpeaker = nextSpeaker;
         }
 
         if (!this.abort) {
@@ -114,6 +149,10 @@ export class ConversationEngine {
       } finally {
         this.running = false;
         this.abort = false;
+        this.paused = false;
+        this.pauseRequested = false;
+        this.pendingUserMessages = [];
+        this.skipDelayNextTurn = false;
         this.currentController?.abort();
         this.currentController = null;
         if (useSessionStore.getState().status !== 'completed') {
@@ -146,6 +185,31 @@ export class ConversationEngine {
     useSessionStore.getState().setStatus('streaming');
   }
 
+  /** Queues a user-authored interjection to be considered before the next turn. */
+  queueUserInterjection(message: string, authorName?: string) {
+    if (!this.running) {
+      return;
+    }
+    const trimmed = message.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (authorName) {
+      this.userDisplayName = authorName.trim() || this.userDisplayName;
+    }
+    this.pendingUserMessages = [trimmed];
+    this.skipDelayNextTurn = true;
+  }
+
+  /** Clears any pending interjection without resuming playback. */
+  clearPendingInterjection() {
+    this.pendingUserMessages = [];
+    this.skipDelayNextTurn = false;
+    if (this.pauseRequested && !this.paused) {
+      this.pauseRequested = false;
+    }
+  }
+
   /** Stops the current run and marks the session completed. */
   stop() {
     if (!this.running) {
@@ -154,6 +218,8 @@ export class ConversationEngine {
     this.abort = true;
     this.paused = false;
     this.pauseRequested = false;
+    this.pendingUserMessages = [];
+    this.skipDelayNextTurn = false;
     this.currentController?.abort();
     useSessionStore.getState().setStatus('completed');
   }
@@ -175,13 +241,11 @@ export class ConversationEngine {
     apiKey,
     config,
     speaker,
-    history,
     isFirst,
   }: {
     apiKey: string;
     config: ConversationConfig;
     speaker: Participant;
-    history: string[];
     isFirst: boolean;
   }) {
     const state = useSessionStore.getState();
@@ -197,7 +261,7 @@ export class ConversationEngine {
       status: 'pending',
     });
 
-    const messages = buildPrompt({ config, speaker, history, isFirst });
+    const messages = buildPrompt({ config, speaker, history: this.history, isFirst });
     const controller = new AbortController();
     this.currentController = controller;
 
@@ -237,11 +301,7 @@ export class ConversationEngine {
 
       const final = useSessionStore.getState().messages.find((msg) => msg.id === messageId);
       if (final) {
-        history.push(`${speaker.displayName}: ${final.content}`);
-      }
-
-      if (history.length > 12) {
-        history.splice(0, history.length - 12);
+        this.recordHistoryEntry(speaker.displayName, final.content);
       }
     } catch (error) {
       if (controller.signal.aborted) {
@@ -256,13 +316,11 @@ export class ConversationEngine {
     apiKey,
     config,
     participants,
-    history,
     currentSpeaker,
   }: {
     apiKey: string;
     config: ConversationConfig;
     participants: Participant[];
-    history: string[];
     currentSpeaker: Participant;
   }) {
     if (participants.length === 2) {
@@ -272,7 +330,7 @@ export class ConversationEngine {
     try {
       const response = await this.client.createChatCompletion(apiKey, {
         model: config.decisionModel,
-        messages: buildDecisionPrompt({ config, participants, history }),
+        messages: buildDecisionPrompt({ config, participants, history: this.history }),
         temperature: 0.3,
         disableSearch: true,
       });
@@ -306,6 +364,36 @@ export class ConversationEngine {
     while (this.paused && !this.abort) {
       await waitFor(150);
     }
+  }
+
+  private consumePendingUserMessages() {
+    if (!this.pendingUserMessages.length) {
+      return false;
+    }
+
+    for (const message of this.pendingUserMessages) {
+      this.recordHistoryEntry(this.userDisplayName, message);
+    }
+
+    this.pendingUserMessages = [];
+    this.skipDelayNextTurn = true;
+    return true;
+  }
+
+  private trimHistory() {
+    if (this.history.length > 12) {
+      this.history.splice(0, this.history.length - 12);
+    }
+  }
+
+  private recordHistoryEntry(name: string, content: string | undefined) {
+    const trimmedContent = content?.trim();
+    if (!trimmedContent) {
+      return;
+    }
+    const trimmedName = name.trim() || 'Speaker';
+    this.history.push(`${trimmedName}: ${trimmedContent}`);
+    this.trimHistory();
   }
 }
 
@@ -347,12 +435,26 @@ function buildPrompt({
   }
 
   const recentHistory = history.slice(-6).join('\n');
+  const userName = config.userName?.trim() || 'User';
+  const latestEntry = history[history.length - 1] ?? '';
+  const userInterjected = latestEntry.startsWith(`${userName}:`);
+  const historySection = recentHistory
+    ? `Here are the latest messages:\n\n${recentHistory}\n\n`
+    : '';
+  const followUpInstruction = [
+    'Stay focused on the topic and respond in character.',
+    userInterjected
+      ? `The latest message is from ${userName}—address them directly using the name "${userName}" and answer their message before continuing the broader discussion.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return [
     systemMessage,
     {
       role: 'user',
-      content: `You're the next speaker in a ${config.conversationType} about ${config.topic || 'anything'}. The setting is ${config.setting || 'anywhere'}. The mood is ${config.mood}. Here are the latest messages:\n\n${recentHistory}\n\nStay focused on the topic and respond in character.`,
+      content: `You're the next speaker in a ${config.conversationType} about ${config.topic || 'anything'}. The setting is ${config.setting || 'anywhere'}. The mood is ${config.mood}. ${historySection}${followUpInstruction}`,
     },
   ];
 }
@@ -394,7 +496,7 @@ function waitFor(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-function createId() {
+export function createId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
   }

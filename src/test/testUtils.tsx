@@ -38,10 +38,10 @@ export function renderWithClient(ui: ReactElement, options: RenderOptions = {}) 
 /** Factory for a minimal GrokClient mock suitable for tests. */
 export function createMockClient(overrides: Partial<GrokClient> = {}): GrokClient {
   const base = {
-    async listModels(_apiKey: string) {
+    async listModels() {
       return [] as GrokModel[];
     },
-    async createChatCompletion(_apiKey: string, _request: unknown) {
+    async createChatCompletion() {
       return {
         id: 'mock-response',
         model: 'mock',
@@ -50,7 +50,7 @@ export function createMockClient(overrides: Partial<GrokClient> = {}): GrokClien
         choices: [],
       } as GrokChatResponse;
     },
-    async *streamChatCompletion(_apiKey: string, _request: unknown, _signal?: AbortSignal) {
+    async *streamChatCompletion() {
       yield { type: 'done' } as GrokStreamEvent;
     },
   } satisfies Partial<GrokClient>;

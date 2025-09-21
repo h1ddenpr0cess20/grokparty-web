@@ -1,8 +1,8 @@
 # Getting Started
 
 ## Features
-- Configure conversations end-to-end: persona authoring, scenario settings, Grok model selection, search controls, and launch review.
-- Stream multi-speaker dialogue from the Grok API with pause/resume controls and status-aware UI cues.
+- Configure conversations end-to-end: persona authoring, scenario settings (including the host name Grok should address), Grok model selection, search controls, and launch review.
+- Stream multi-speaker dialogue from the Grok API with pause/resume controls, host interjection support, and status-aware UI cues.
 - Persist key session data locally with sensible defaults; remember API keys securely per device when requested.
 - Export transcripts (conversation plus configuration) as JSON for archival or tooling handoff.
 - Responsive, theme-aware interface using accessibility-focused defaults and smooth transcript scrolling.

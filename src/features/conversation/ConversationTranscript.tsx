@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import { useConversationMessages, useParticipantsMap } from '@/state/sessionSelectors';
+import { useSessionStore } from '@/state/sessionStore';
 
 /**
  * Live transcript view that auto-scrolls as new messages stream in.
@@ -8,8 +9,12 @@ import { useConversationMessages, useParticipantsMap } from '@/state/sessionSele
 export function ConversationTranscript() {
   const messages = useConversationMessages();
   const participants = useParticipantsMap();
+  const userDisplayName = useSessionStore((state) => state.config.userName?.trim() || 'User');
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lastMessage = messages.length ? messages[messages.length - 1] : null;
+  const lastMessageKey = lastMessage
+    ? `${lastMessage.id}:${lastMessage.status}:${lastMessage.content}`
+    : 'none';
 
   useEffect(() => {
     const el = containerRef.current;
@@ -22,10 +27,10 @@ export function ConversationTranscript() {
     const targetTop = lastMessage ? el.scrollHeight : 0;
 
     el.scrollTo({ top: targetTop, behavior });
-  }, [lastMessage?.id, lastMessage?.content, lastMessage?.status, messages.length]);
+  }, [lastMessageKey, lastMessage, messages.length]);
 
   return (
-    <div ref={containerRef} className="transcript-scroll max-h-[60vh] min-h-[18rem] overflow-y-auto pr-1">
+    <div ref={containerRef} className="transcript-scroll max-h-[60vh] min-h-72 overflow-y-auto pr-1">
       <ol className="flex flex-col gap-4">
         {messages.length === 0 ? (
           <li>
@@ -36,8 +41,9 @@ export function ConversationTranscript() {
         ) : (
           messages.map((message) => {
             const participant = message.speakerId ? participants.get(message.speakerId) : null;
-            const name = participant?.displayName ?? 'Narrator';
-            const color = participant?.color ?? '#334155';
+            const isUserMessage = message.role === 'user';
+            const name = isUserMessage ? userDisplayName : participant?.displayName ?? 'Narrator';
+            const color = isUserMessage ? '#2563eb' : participant?.color ?? '#334155';
             const isPendingStatus = message.status === 'pending' || message.status === 'streaming';
             const showStatus = message.status !== 'completed';
             const formattedStatus = isPendingStatus ? null : formatStatus(message.status);
@@ -46,7 +52,7 @@ export function ConversationTranscript() {
               <li key={message.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+                  <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
                     {name}
                   </span>
                   {showStatus
@@ -88,7 +94,7 @@ function PendingSpinner({ withLabel = true }: { withLabel?: boolean }) {
         {[0, 1, 2].map((index) => (
           <span
             key={index}
-            className="h-2.5 w-2.5 rounded-full bg-current animate-bounce"
+            className="size-2.5 animate-bounce rounded-full bg-current"
             style={{ animationDelay: `${index * 0.15}s` }}
             aria-hidden
           />

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { ConversationEngine } from './conversationEngine';
+import { ConversationEngine, createId } from './conversationEngine';
 import { useGrokClient } from '@/api/useGrokClient';
 import { useSessionStore } from '@/state/sessionStore';
 
@@ -37,6 +37,34 @@ export function useConversationEngine() {
     pause: () => engine.pause(),
     resume: () => engine.resume(),
     stop: () => engine.stop(),
+    interject: (content: string) => {
+      if (!engine.isRunning()) {
+        return;
+      }
+      const trimmed = content.trim();
+      if (!trimmed) {
+        return;
+      }
+      const now = Date.now();
+      const store = useSessionStore.getState();
+      const displayName = store.config.userName?.trim() || 'User';
+      store.appendMessage({
+        id: createId(),
+        role: 'user',
+        content: trimmed,
+        createdAt: now,
+        status: 'completed',
+      });
+      engine.queueUserInterjection(trimmed, displayName);
+      engine.resume();
+    },
+    cancelInterjection: () => {
+      if (!engine.isRunning()) {
+        return;
+      }
+      engine.clearPendingInterjection();
+      engine.resume();
+    },
     isRunning: () => engine.isRunning(),
     isPaused: () => engine.isPaused(),
   } as const;
