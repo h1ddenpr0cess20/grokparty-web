@@ -30,6 +30,17 @@ During a session, real-time responses stream into a conversation timeline beside
 - [Getting started guide](docs/getting-started.md)
 - [Architecture overview](docs/architecture.md)
 
+## Running with Docker
+
+You can build a production bundle and serve it with Nginx using Docker:
+
+```bash
+docker build -t grokparty-web .
+docker run --rm -p 8080:80 grokparty-web
+```
+
+Then open <http://localhost:8080> in your browser.
+
 ## Disclaimers
 - [AI Output Disclaimer](docs/ai-output-disclaimer.md) - Important information about the limitations of AI-generated content and allocation of responsibility
 - [Not a Companion Policy](docs/not-a-companion.md) - GrokParty is a tool for creativity, productivity, and learning, not for companionship or simulated relationships
