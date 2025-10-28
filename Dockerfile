@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Build stage: install dependencies and compile the Vite app
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 
 # Install dependencies based on lockfile to ensure reproducible builds
@@ -13,7 +13,7 @@ COPY . .
 RUN npm run build
 
 # Production stage: serve the static assets with nginx
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.28-alpine-slim AS production
 
 # Copy the compiled app from the build stage
 COPY --from=build /app/dist /usr/share/nginx/html
