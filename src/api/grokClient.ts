@@ -47,7 +47,7 @@ export interface GrokChatMessage {
 }
 
 /**
- * Request body for chat completions.
+ * Request payload for the Grok Responses API.
  */
 export interface GrokChatRequest {
   model: string;
@@ -58,46 +58,29 @@ export interface GrokChatRequest {
 }
 
 /**
- * One choice from a non-streaming completion.
+ * Normalized response payload returned to the UI layer.
  */
-export interface GrokCompletionChoice {
+export interface GrokResponseChoice {
   message: GrokChatMessage;
-  finish_reason: string | null;
+  finishReason: string | null;
 }
 
-/**
- * Response for a non-streaming chat completion.
- */
-export interface GrokChatResponse {
+export interface GrokResponse {
   id: string;
   model: string;
   created: number;
-  object: 'chat.completion' | 'response';
-  choices: GrokCompletionChoice[];
+  object: 'response';
+  choices: GrokResponseChoice[];
 }
 
 /**
  * Discriminated union of streaming events from the Grok API.
  */
 export type GrokStreamEvent =
-  | { type: 'chunk'; delta: string; raw: GrokChatCompletionChunk }
-  | { type: 'message'; message: GrokChatMessage; raw: GrokChatCompletionChunk }
+  | { type: 'chunk'; delta: string }
+  | { type: 'message'; message: GrokChatMessage }
   | { type: 'done' }
   | { type: 'error'; error: Error; raw?: string };
-
-interface GrokChatCompletionChunkChoice {
-  delta?: Partial<GrokChatMessage> & { content?: string };
-  message?: GrokChatMessage;
-  finish_reason: string | null;
-}
-
-interface GrokChatCompletionChunk {
-  id: string;
-  model: string;
-  created: number;
-  object: 'chat.completion.chunk';
-  choices: GrokChatCompletionChunkChoice[];
-}
 
 const grokModelsResponseSchema = z.object({
   data: z
@@ -171,7 +154,7 @@ interface ResponsesApiStreamDelta {
 }
 
 /**
- * Thin wrapper around the Grok REST API with helpers for streaming chat completions.
+ * Thin wrapper around the Grok REST API with helpers for the Responses endpoint.
  *
  * - Uses `fetch` by default but accepts a custom implementation for testing.
  * - Provides graceful fallbacks when streaming is unavailable or responses are malformed.
@@ -225,9 +208,9 @@ export class GrokClient {
   }
 
   /**
-   * Performs a non-streaming completion request and returns the full response.
+   * Performs a non-streaming Responses request and returns the normalized payload.
    */
-  async createChatCompletion(apiKey: string, request: GrokChatRequest): Promise<GrokChatResponse> {
+  async createChatCompletion(apiKey: string, request: GrokChatRequest): Promise<GrokResponse> {
     const response = await this.fetchImpl(`${this.baseUrl}/responses`, {
       method: 'POST',
       headers: this.createHeaders(apiKey),
@@ -243,7 +226,7 @@ export class GrokClient {
   }
 
   /**
-   * Streams a chat completion as server‑sent events, yielding incremental tokens and a final message.
+   * Streams a response as server‑sent events, yielding incremental tokens and a final message.
    * Falls back to a non‑streaming request when the server does not support streaming.
    */
   async *streamChatCompletion(
@@ -263,15 +246,13 @@ export class GrokClient {
     }
 
     if (!response.body) {
-      // Streaming is not supported, fall back to non-streaming request
-      const completion = await this.createChatCompletion(apiKey, {
+      const fullResponse = await this.createChatCompletion(apiKey, {
         ...request,
         stream: false,
       });
       yield {
         type: 'message',
-        message: completion.choices[0]?.message ?? { role: 'assistant', content: '' },
-        raw: chunkFromResponse(completion),
+        message: fullResponse.choices[0]?.message ?? { role: 'assistant', content: '' },
       };
       yield { type: 'done' };
       return;
@@ -312,41 +293,22 @@ export class GrokClient {
         }
 
         const eventType = event.eventName ?? payload.type;
-        const maybeCompletionChunk = payload as unknown as GrokChatCompletionChunk;
-        if (Array.isArray(maybeCompletionChunk?.choices)) {
-          const choice = maybeCompletionChunk.choices[0];
-          if (choice?.delta?.content) {
-            collectedText += choice.delta.content;
-            yield { type: 'chunk', delta: choice.delta.content, raw: maybeCompletionChunk };
-          }
-          if (choice?.message) {
-            collectedText = choice.message.content ?? collectedText;
-            yield { type: 'message', message: choice.message, raw: maybeCompletionChunk };
-          }
-          continue;
-        }
 
         if (eventType === 'response.output_text.delta' || eventType === 'response.delta') {
           const delta = payload.delta ?? extractDeltaFromOutputs(payload.output ?? payload.response?.output);
-          if (delta) {
-            const responseId = payload.response_id ?? payload.id ?? payload.response?.id ?? `resp_${Date.now()}`;
-            collectedText += delta;
-            yield {
-              type: 'chunk',
-              delta,
-              raw: chunkFromDelta(responseId, request.model, delta),
-            };
+          if (!delta) {
+            continue;
           }
+          collectedText += delta;
+          yield { type: 'chunk', delta };
           continue;
         }
 
         if (eventType === 'response.completed' || eventType === 'response.output_text.completed') {
           const normalized = normalizeResponsesPayload(payload.response ?? (payload as ResponsesApiResponse));
-          yield {
-            type: 'message',
-            message: normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText },
-            raw: chunkFromResponse(normalized),
-          };
+          const message = normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText };
+          collectedText = message.content;
+          yield { type: 'message', message };
           completed = true;
           shouldStop = true;
           break;
@@ -377,12 +339,8 @@ export class GrokClient {
         ],
       });
 
-      yield {
-        type: 'message',
-        message: normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText },
-        raw: chunkFromResponse(normalized),
-      };
-
+      const message = normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText };
+      yield { type: 'message', message };
       completed = true;
     }
 
@@ -398,38 +356,6 @@ export class GrokClient {
       'Content-Type': 'application/json',
     };
   }
-}
-
-/**
- * Converts a non-streaming completion response into a single "chunk" payload shape
- * so downstream consumers can handle both streaming and non-streaming uniformly.
- */
-function chunkFromResponse(response: GrokChatResponse): GrokChatCompletionChunk {
-  return {
-    id: response.id,
-    model: response.model,
-    created: response.created,
-    object: 'chat.completion.chunk',
-    choices: response.choices.map((choice) => ({
-      message: choice.message,
-      finish_reason: choice.finish_reason,
-    })),
-  } satisfies GrokChatCompletionChunk;
-}
-
-function chunkFromDelta(id: string, model: string, delta: string): GrokChatCompletionChunk {
-  return {
-    id,
-    model,
-    created: Math.floor(Date.now() / 1000),
-    object: 'chat.completion.chunk',
-    choices: [
-      {
-        delta: { role: 'assistant', content: delta },
-        finish_reason: null,
-      },
-    ],
-  };
 }
 
 function buildResponsesPayload(request: GrokChatRequest, stream: boolean): ResponsesApiPayload {
@@ -453,18 +379,18 @@ function buildResponsesPayload(request: GrokChatRequest, stream: boolean): Respo
   return payload;
 }
 
-function normalizeResponsesPayload(payload: ResponsesApiResponse): GrokChatResponse {
+function normalizeResponsesPayload(payload: ResponsesApiResponse): GrokResponse {
   const message = extractMessageFromOutputs(payload.output);
   const finishReason = payload.output?.[0]?.status === 'incomplete' ? 'incomplete' : 'stop';
   return {
     id: payload.id,
     model: payload.model,
     created: payload.created ?? payload.created_at ?? Math.floor(Date.now() / 1000),
-    object: payload.object === 'response' ? 'response' : 'chat.completion',
+    object: 'response',
     choices: [
       {
         message,
-        finish_reason: finishReason,
+        finishReason,
       },
     ],
   };

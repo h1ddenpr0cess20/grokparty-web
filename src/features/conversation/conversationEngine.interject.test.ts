@@ -11,7 +11,6 @@ function createStreamingClient(requests: GrokChatRequest[]) {
       yield {
         type: 'message',
         message: { role: 'assistant', content: 'ack' },
-        raw: {} as never,
       };
       yield { type: 'done' } as const;
     },

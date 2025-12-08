@@ -1,30 +1,27 @@
 # GrokParty Web
 
-GrokParty Web is a browser app for orchestrating Grok-powered, multi-speaker sessions entirely client-side. Configure your panel, stream the dialog live, and export transcripts without standing up any services of your own.
+GrokParty Web is a browser application for orchestrating Grok-powered, multi-speaker sessions entirely on the client. Configure a panel of personas, stream their dialogue live, and export the full transcript without deploying a backend.
 
-**What it delivers**
-- Guided setup flow for scenario design, persona authoring, and Grok model selection.
-- Live conversation view with pause/resume controls and downloadable transcripts.
-- Secure-by-default API key handling that stays in the browser.
-- Dark-mode friendly, responsive UI tuned for longer-running sessions.
-- Host controls for pausing, resuming, and inserting named interjections mid-conversation.
+## Highlights
+- Guided setup that covers scenario design, persona authoring, and Grok model selection.
+- Live conversation view with pause, resume, stop, and host interjection controls.
+- Secure-by-default API key handling that never leaves the browser.
+- Responsive, dark-mode friendly UI tuned for longer-running sessions.
+- Transcript export that bundles both the conversation and its configuration.
 
-## Feature tour
+## Key Workflows
 
-![Landing page showing welcome actions and API key status](docs/screenshots/landing-page.png)
-The home screen highlights key actions—manage your Grok API key, jump into the setup wizard, and review the live transcript or configuration summaries at a glance. Status pills keep you informed about API key detection and session state.
+### 1. Prepare the scenario
+Start on the home screen to add or update your Grok API key and open the setup wizard. The scenario step gathers the conversation type, topic, mood, optional setting, host name, model temperature, and whether Grok's search tools should be turned on. Search is opt-in (disabled by default) and is never used by the decision model that chooses the next speaker. Each field ships with sensible defaults so you can iterate quickly.
 
-![Scenario configuration step with sliders and toggles](docs/screenshots/setup-scenario.png)
-Step one of the setup wizard captures the scenario: conversation type, mood, topic, optional setting, the host name participants should address, model temperature, and whether Grok's web search assistance should stay enabled. Everything is tuned for fast adjustments with sensible defaults.
+### 2. Configure participants
+Define at least two personas, each with a name, short description, and Grok model. Models can be refreshed in-line to pick up the latest availability. The wizard keeps inputs validated and enforces that every persona is ready before launch.
 
-![Participants configuration with persona list and model selectors](docs/screenshots/setup-participants.png)
-Participants are fully configurable. Name each persona, pick the Grok model that matches their role, and refresh the available model list without leaving the flow.
+### 3. Launch and moderate the session
+Once the configuration looks right, launch the conversation. Responses stream into the transcript in real time while the side panel keeps the scenario context nearby. You can pause, resume, or stop at any point and insert host-authored messages that use the configured display name so participants respond directly to you.
 
-![Launch review showing scenario and participants summary cards](docs/screenshots/setup-review.png)
-Before you launch, review a consolidated summary of the scenario, participants, and decision model so you can make quick last-minute tweaks.
-
-![Live conversation view displaying threaded responses and session details](docs/screenshots/conversation-live.png)
-During a session, real-time responses stream into a conversation timeline beside the configuration context. Pause, resume, or stop at will, inject host-authored turns that use the configured name, and download the full transcript—configuration included—for follow-up analysis.
+### 4. Review and export
+Every run records the scenario, participants, decision model, and full transcript. Download the bundle as JSON for auditing or tooling handoff, or reset and start a new experiment right away.
 
 ## Documentation
 - [Getting started guide](docs/getting-started.md)
@@ -32,7 +29,7 @@ During a session, real-time responses stream into a conversation timeline beside
 
 ## Running with Docker
 
-You can build a production bundle and serve it with Nginx using Docker:
+Build a production bundle and serve it with Nginx using Docker:
 
 ```bash
 docker build -t grokparty-web .
@@ -42,5 +39,5 @@ docker run --rm -p 8080:80 grokparty-web
 Then open <http://localhost:8080> in your browser.
 
 ## Disclaimers
-- [AI Output Disclaimer](docs/ai-output-disclaimer.md) - Important information about the limitations of AI-generated content and allocation of responsibility
-- [Not a Companion Policy](docs/not-a-companion.md) - GrokParty is a tool for creativity, productivity, and learning, not for companionship or simulated relationships
+- [AI Output Disclaimer](docs/ai-output-disclaimer.md) – Important information about the limitations of AI-generated content and allocation of responsibility
+- [Not a Companion Policy](docs/not-a-companion.md) – GrokParty is a tool for creativity, productivity, and learning, not for companionship or simulated relationships

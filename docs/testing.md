@@ -4,8 +4,7 @@ This document summarizes the automated test approach for GrokParty Web.
 
 ## Tooling
 - **Vitest** provides a lightweight Jest-compatible runner integrated with Vite.
-- **@testing-library/react** exposes DOM-level assertions centered on user interactions.
-- **@testing-library/user-event** drives realistic keyboard/mouse sequences.
+- **@testing-library/react** exposes DOM-level queries plus helpers for simulating user interactions.
 - **jest-dom matchers** supply semantic assertions (visibility, accessibility state).
 
 ## Test Structure

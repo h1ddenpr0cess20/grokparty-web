@@ -1,7 +1,7 @@
 import type { ComponentType, PropsWithChildren, ReactElement } from 'react';
 import { render } from '@testing-library/react';
 import { GrokClientContext } from '@/api/grokClientContext';
-import type { GrokClient, GrokModel, GrokChatResponse, GrokStreamEvent } from '@/api/grokClient';
+import type { GrokClient, GrokModel, GrokResponse, GrokStreamEvent } from '@/api/grokClient';
 import { useSessionStore, getDefaultConfig } from '@/state/sessionStore';
 
 /** Clears persisted state and resets the session store to defaults. */
@@ -46,9 +46,9 @@ export function createMockClient(overrides: Partial<GrokClient> = {}): GrokClien
         id: 'mock-response',
         model: 'mock',
         created: Date.now(),
-        object: 'chat.completion',
+        object: 'response',
         choices: [],
-      } as GrokChatResponse;
+      } as GrokResponse;
     },
     async *streamChatCompletion() {
       yield { type: 'done' } as GrokStreamEvent;

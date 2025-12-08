@@ -402,7 +402,7 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
     mood: config.mood ?? 'friendly',
     userName: config.userName?.trim() ?? '',
     temperature: config.temperature ?? 0.8,
-    enableSearch: config.enableSearch ?? true,
+    enableSearch: config.enableSearch ?? false,
     decisionModel,
     participants,
   };

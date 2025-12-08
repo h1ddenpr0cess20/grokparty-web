@@ -97,7 +97,7 @@ const DEFAULT_CONFIG: ConversationConfig = {
   mood: 'friendly',
   userName: '',
   temperature: 0.8,
-  enableSearch: true,
+  enableSearch: false,
   decisionModel: 'grok-4',
   participants: [],
 };
