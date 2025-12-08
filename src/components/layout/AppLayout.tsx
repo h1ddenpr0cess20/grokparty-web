@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { ApiKeyMenu } from '@/components/layout/ApiKeyMenu';
@@ -15,6 +16,24 @@ const NAV_ITEMS = [
  */
 export function AppLayout() {
   const status = useSessionStore((state) => state.status);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasRedirectedOnReload = useRef(false);
+
+  useEffect(() => {
+    // When the browser reloads on a deep-linked route, send the user back home
+    // so the session starts from a predictable state.
+    if (hasRedirectedOnReload.current) {
+      return;
+    }
+
+    if (location.pathname === '/' || !isReloadNavigation()) {
+      return;
+    }
+
+    hasRedirectedOnReload.current = true;
+    navigate('/', { replace: true });
+  }, [location.pathname, navigate]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -111,6 +130,26 @@ function StatusPill({ status }: { status: string }) {
       {label}
     </span>
   );
+}
+
+function isReloadNavigation(): boolean {
+  if (typeof window === 'undefined' || typeof performance === 'undefined') {
+    return false;
+  }
+
+  if (typeof performance.getEntriesByType === 'function') {
+    const [entry] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    if (entry) {
+      return entry.type === 'reload';
+    }
+  }
+
+  const nav = (performance as Performance & { navigation?: PerformanceNavigation }).navigation;
+  if (nav) {
+    return nav.type === nav.TYPE_RELOAD;
+  }
+
+  return false;
 }
 
 function getStatusMeta(status: string): StatusMeta {

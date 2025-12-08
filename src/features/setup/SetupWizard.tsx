@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Controller, useFieldArray, useForm, type FieldArrayWithId, type UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Stepper } from '@/components/ui/Stepper';
 import { Switch } from '@/components/ui/Switch';
 import { useGrokModels } from './useGrokModels';
-import { PARTICIPANT_COLORS, useSessionStore, type ConversationConfig } from '@/state/sessionStore';
+import { useSessionStore, type ConversationConfig } from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
 const PARTICIPANT_SCHEMA = z.object({
@@ -33,7 +33,6 @@ const WIZARD_SCHEMA = z.object({
 const STEP_SEQUENCE = [
   { id: 'scenario', label: 'Scenario' },
   { id: 'participants', label: 'Participants' },
-  { id: 'review', label: 'Launch' },
 ] as const;
 
 type WizardValues = z.infer<typeof WIZARD_SCHEMA>;
@@ -67,6 +66,7 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
   const config = useSessionStore((state) => state.config);
   const updateConfig = useSessionStore((state) => state.updateConfig);
   const setParticipants = useSessionStore((state) => state.setParticipants);
+  const resetSession = useSessionStore((state) => state.resetSession);
   const [activeStep, setActiveStep] = useState<StepId>('scenario');
   const { models, status: modelsStatus, refresh } = useGrokModels();
 
@@ -123,6 +123,7 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
       model: participant.model,
     }));
     setParticipants(normalizedParticipants);
+    resetSession();
     showToast({
       variant: 'success',
       title: 'Configuration saved',
@@ -148,9 +149,6 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
           onRefreshModels={refresh}
         />
       ) : null}
-      {activeStep === 'review' ? (
-        <ReviewStep values={form.watch()} models={models} />
-      ) : null}
       <footer className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           {currentIndex > 0 ? (
@@ -158,13 +156,15 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
               Back
             </Button>
           ) : null}
-          {activeStep !== 'review' ? (
+          {activeStep !== 'participants' ? (
             <Button variant="primary" type="button" onClick={goNext}>
               Continue
             </Button>
           ) : null}
         </div>
-        {activeStep === 'review' ? <Button type="submit">Start Conversation</Button> : null}
+        {activeStep === 'participants' ? (
+          <Button type="submit">Save &amp; go to conversation</Button>
+        ) : null}
       </footer>
     </form>
   );
@@ -173,7 +173,6 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
 const stepFieldMap: Record<StepId, (keyof WizardValues)[]> = {
   scenario: ['conversationType', 'mood', 'temperature', 'enableSearch', 'userName'],
   participants: ['participants', 'decisionModel'],
-  review: [],
 };
 
 interface ScenarioStepProps {
@@ -379,105 +378,6 @@ function ParticipantsStep({
   );
 }
 
-interface ReviewStepProps {
-  values: WizardValues;
-  models: ReturnType<typeof useGrokModels>['models'];
-}
-
-function ReviewStep({ values, models }: ReviewStepProps) {
-  const modelDescriptions = Object.fromEntries(models.map((model) => [model.id, model]));
-  const topicDisplay = values.topic || 'anything';
-  const settingDisplay = values.setting || 'anywhere';
-  return (
-    <section className="grid gap-6 md:grid-cols-2">
-      <ReviewCard title="Scenario">
-        <dl className="space-y-1 text-sm text-muted">
-          <div>
-            <dt className="font-semibold text-foreground">Type</dt>
-            <dd>{capitalize(values.conversationType)}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">Topic</dt>
-            <dd>{topicDisplay}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">Setting</dt>
-            <dd>{settingDisplay}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">Mood</dt>
-            <dd>{capitalize(values.mood)}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">Your name</dt>
-            <dd>{values.userName?.trim() || '—'}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">Temperature</dt>
-            <dd>{values.temperature.toFixed(1)}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold text-foreground">Search</dt>
-            <dd>{values.enableSearch ? 'Enabled' : 'Disabled'}</dd>
-          </div>
-        </dl>
-      </ReviewCard>
-      <ReviewCard title="Participants">
-        <ul className="space-y-3 text-sm text-muted">
-          {values.participants.map((participant, index) => {
-            const color = PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length];
-            const displayName = deriveDisplayName(participant.persona, index);
-
-            return (
-              <li key={participant.id} className="flex items-start gap-3">
-                <span
-                  className="mt-1 inline-flex size-3 rounded-full"
-                  style={{ backgroundColor: color }}
-                  aria-hidden
-                />
-                <div>
-                  <p className="font-semibold text-foreground">{displayName}</p>
-                  <p>{participant.persona || 'No persona provided yet.'}</p>
-                  <p className="text-xs text-muted">
-                    {modelDescriptions[participant.model]?.name ?? participant.model}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </ReviewCard>
-      <ReviewCard title="Decision model" className="md:col-span-2">
-        <p className="text-sm text-muted">
-          {modelDescriptions[values.decisionModel]?.name ?? values.decisionModel}
-        </p>
-        {modelDescriptions[values.decisionModel]?.description ? (
-          <p className="mt-2 text-sm text-muted">
-            {modelDescriptions[values.decisionModel]?.description}
-          </p>
-        ) : null}
-      </ReviewCard>
-    </section>
-  );
-}
-
-function ReviewCard({
-  title,
-  children,
-  className,
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <article className={`rounded-2xl border border-border bg-surface p-5 shadow-sm ${className ?? ''}`}>
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{title}</h3>
-      <div className="mt-4 space-y-3">{children}</div>
-    </article>
-  );
-}
-
 function mapConfigToForm(config: ConversationConfig): WizardValues {
   const decisionModel = config.decisionModel ?? 'grok-4';
   const topic = config.topic?.trim() ?? '';
@@ -518,35 +418,6 @@ function createEmptyParticipant(defaultModel: string | undefined): WizardValues[
 
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function deriveDisplayName(persona: string, index: number): string {
-  if (!persona) {
-    return `Character ${index + 1}`;
-  }
-
-  const primary = persona.split(/[.!?\n\r]/)[0]?.trim() ?? persona;
-  const cleaned = stripLeadingPersonaArtifacts(primary);
-
-  if (!cleaned) {
-    return `Character ${index + 1}`;
-  }
-
-  return cleaned.length > 36 ? `${cleaned.slice(0, 33).trimEnd()}…` : cleaned;
-}
-
-function stripLeadingPersonaArtifacts(value: string): string {
-  let result = value.trimStart();
-
-  const numberedListPrefix = result.match(/^\d{1,3}(?:\s*[-.:)\]])\s*/u);
-  if (numberedListPrefix) {
-    result = result.slice(numberedListPrefix[0].length);
-  }
-
-  result = result.replace(/^(?:[-*•]{1,3})\s*/u, '');
-  result = result.replace(/^["'“”‘’`]+/u, '').trimStart();
-
-  return result.trim();
 }
 
 function createId() {

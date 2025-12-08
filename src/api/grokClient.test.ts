@@ -116,14 +116,14 @@ describe('GrokClient', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          id: 'chat-1',
+          id: 'resp-1',
           model: 'grok-4',
-          created: Date.now(),
-          object: 'chat.completion',
-          choices: [
+          created_at: Date.now(),
+          object: 'response',
+          output: [
             {
-              message,
-              finish_reason: 'stop',
+              role: 'assistant',
+              content: [{ type: 'output_text', text: message.content }],
             },
           ],
         }),

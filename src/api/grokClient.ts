@@ -54,7 +54,6 @@ export interface GrokChatRequest {
   messages: GrokChatMessage[];
   temperature?: number;
   disableSearch?: boolean;
-  searchParameters?: Record<string, unknown> | null;
   stream?: boolean;
 }
 
@@ -73,7 +72,7 @@ export interface GrokChatResponse {
   id: string;
   model: string;
   created: number;
-  object: 'chat.completion';
+  object: 'chat.completion' | 'response';
   choices: GrokCompletionChoice[];
 }
 
@@ -113,16 +112,63 @@ const grokModelsResponseSchema = z.object({
     .optional(),
 });
 
-const DEFAULT_SEARCH_PARAMETERS = {
-  mode: 'auto',
-  return_citations: true,
-  max_search_results: 10,
-  sources: [
-    { type: 'web', country: 'us' },
-    { type: 'news', country: 'us' },
-    { type: 'x' },
-  ],
-};
+const DEFAULT_RESPONSES_TOOLS = [
+  { type: 'web_search' as const },
+  { type: 'x_search' as const },
+];
+
+type ResponsesToolType = (typeof DEFAULT_RESPONSES_TOOLS)[number]['type'];
+
+interface ResponsesApiInputItem {
+  role: GrokRole;
+  content: string;
+}
+
+interface ResponsesApiPayload {
+  model: string;
+  input: ResponsesApiInputItem[];
+  temperature?: number;
+  tools?: ResponsesApiTool[];
+  stream?: boolean;
+}
+
+interface ResponsesApiTool {
+  type: ResponsesToolType;
+}
+
+interface ResponsesApiResponse {
+  id: string;
+  object: string;
+  model: string;
+  created?: number;
+  created_at?: number;
+  output?: ResponsesApiOutput[];
+}
+
+interface ResponsesApiOutput {
+  id?: string;
+  role?: string;
+  type?: string;
+  status?: string;
+  content?: ResponsesApiOutputContent[];
+}
+
+interface ResponsesApiOutputContent {
+  type?: string;
+  text?: string;
+}
+
+interface ResponsesApiStreamDelta {
+  id?: string;
+  type?: string;
+  response_id?: string;
+  response?: ResponsesApiResponse;
+  delta?: string;
+  output_index?: number;
+  content_block_index?: number;
+  output?: ResponsesApiOutput[];
+  error?: { message?: string };
+}
 
 /**
  * Thin wrapper around the Grok REST API with helpers for streaming chat completions.
@@ -182,23 +228,18 @@ export class GrokClient {
    * Performs a non-streaming completion request and returns the full response.
    */
   async createChatCompletion(apiKey: string, request: GrokChatRequest): Promise<GrokChatResponse> {
-    const response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+    const response = await this.fetchImpl(`${this.baseUrl}/responses`, {
       method: 'POST',
       headers: this.createHeaders(apiKey),
-      body: JSON.stringify({
-        ...request,
-        stream: false,
-        search_parameters: request.disableSearch
-          ? null
-          : request.searchParameters ?? DEFAULT_SEARCH_PARAMETERS,
-      }),
+      body: JSON.stringify(buildResponsesPayload(request, false)),
     });
 
     if (!response.ok) {
       throw createHttpError(response.status, await response.text());
     }
 
-    return (await response.json()) as GrokChatResponse;
+    const payload = (await response.json()) as ResponsesApiResponse;
+    return normalizeResponsesPayload(payload);
   }
 
   /**
@@ -210,16 +251,10 @@ export class GrokClient {
     request: GrokChatRequest,
     signal?: AbortSignal,
   ): AsyncGenerator<GrokStreamEvent> {
-    const response = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+    const response = await this.fetchImpl(`${this.baseUrl}/responses`, {
       method: 'POST',
       headers: this.createHeaders(apiKey),
-      body: JSON.stringify({
-        ...request,
-        stream: true,
-        search_parameters: request.disableSearch
-          ? null
-          : request.searchParameters ?? DEFAULT_SEARCH_PARAMETERS,
-      }),
+      body: JSON.stringify(buildResponsesPayload(request, true)),
       signal,
     });
 
@@ -245,6 +280,9 @@ export class GrokClient {
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
+    let collectedText = '';
+    let completed = false;
+    let shouldStop = false;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -253,45 +291,99 @@ export class GrokClient {
       }
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+      buffer = buffer.replace(/\r\n/g, '\n');
+      const segments = buffer.split('\n\n');
+      buffer = segments.pop() ?? '';
 
-      for (const rawLine of lines) {
-        const line = rawLine.trim();
-        if (!line || !line.startsWith('data:')) {
+      for (const segment of segments) {
+        const event = parseSseEvent(segment);
+        if (!event?.data) {
           continue;
         }
 
-        const data = line.slice(5).trim();
-        if (!data) {
+        if (event.data === '[DONE]') {
+          shouldStop = true;
+          break;
+        }
+
+        const payload = safeJsonParse<ResponsesApiStreamDelta>(event.data);
+        if (!payload) {
           continue;
         }
 
-        if (data === '[DONE]') {
-          yield { type: 'done' };
+        const eventType = event.eventName ?? payload.type;
+        const maybeCompletionChunk = payload as unknown as GrokChatCompletionChunk;
+        if (Array.isArray(maybeCompletionChunk?.choices)) {
+          const choice = maybeCompletionChunk.choices[0];
+          if (choice?.delta?.content) {
+            collectedText += choice.delta.content;
+            yield { type: 'chunk', delta: choice.delta.content, raw: maybeCompletionChunk };
+          }
+          if (choice?.message) {
+            collectedText = choice.message.content ?? collectedText;
+            yield { type: 'message', message: choice.message, raw: maybeCompletionChunk };
+          }
+          continue;
+        }
+
+        if (eventType === 'response.output_text.delta' || eventType === 'response.delta') {
+          const delta = payload.delta ?? extractDeltaFromOutputs(payload.output ?? payload.response?.output);
+          if (delta) {
+            const responseId = payload.response_id ?? payload.id ?? payload.response?.id ?? `resp_${Date.now()}`;
+            collectedText += delta;
+            yield {
+              type: 'chunk',
+              delta,
+              raw: chunkFromDelta(responseId, request.model, delta),
+            };
+          }
+          continue;
+        }
+
+        if (eventType === 'response.completed' || eventType === 'response.output_text.completed') {
+          const normalized = normalizeResponsesPayload(payload.response ?? (payload as ResponsesApiResponse));
+          yield {
+            type: 'message',
+            message: normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText },
+            raw: chunkFromResponse(normalized),
+          };
+          completed = true;
+          shouldStop = true;
+          break;
+        }
+
+        if (eventType === 'response.error' || payload.error) {
+          const error = new Error(payload.error?.message ?? 'Grok streaming request failed');
+          yield { type: 'error', error, raw: event.data };
           return;
         }
-
-        try {
-          const parsed = JSON.parse(data) as GrokChatCompletionChunk;
-
-          const choice = parsed.choices[0];
-          if (!choice) {
-            continue;
-          }
-
-          if (choice.delta?.content) {
-            yield { type: 'chunk', delta: choice.delta.content, raw: parsed };
-          }
-
-          if (choice.message) {
-            yield { type: 'message', message: choice.message, raw: parsed };
-          }
-        } catch (error) {
-          console.error('Failed to parse Grok SSE chunk', error, data);
-          yield { type: 'error', error: error instanceof Error ? error : new Error(String(error)) };
-        }
       }
+
+      if (shouldStop) {
+        break;
+      }
+    }
+
+    if (!completed && collectedText) {
+      const normalized = normalizeResponsesPayload({
+        id: `resp_${Date.now()}`,
+        object: 'response',
+        model: request.model,
+        output: [
+          {
+            role: 'assistant',
+            content: [{ type: 'output_text', text: collectedText }],
+          },
+        ],
+      });
+
+      yield {
+        type: 'message',
+        message: normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText },
+        raw: chunkFromResponse(normalized),
+      };
+
+      completed = true;
     }
 
     yield { type: 'done' };
@@ -323,6 +415,110 @@ function chunkFromResponse(response: GrokChatResponse): GrokChatCompletionChunk 
       finish_reason: choice.finish_reason,
     })),
   } satisfies GrokChatCompletionChunk;
+}
+
+function chunkFromDelta(id: string, model: string, delta: string): GrokChatCompletionChunk {
+  return {
+    id,
+    model,
+    created: Math.floor(Date.now() / 1000),
+    object: 'chat.completion.chunk',
+    choices: [
+      {
+        delta: { role: 'assistant', content: delta },
+        finish_reason: null,
+      },
+    ],
+  };
+}
+
+function buildResponsesPayload(request: GrokChatRequest, stream: boolean): ResponsesApiPayload {
+  const payload: ResponsesApiPayload = {
+    model: request.model,
+    input: request.messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+    stream,
+  };
+
+  if (typeof request.temperature === 'number') {
+    payload.temperature = request.temperature;
+  }
+
+  if (!request.disableSearch) {
+    payload.tools = DEFAULT_RESPONSES_TOOLS;
+  }
+
+  return payload;
+}
+
+function normalizeResponsesPayload(payload: ResponsesApiResponse): GrokChatResponse {
+  const message = extractMessageFromOutputs(payload.output);
+  const finishReason = payload.output?.[0]?.status === 'incomplete' ? 'incomplete' : 'stop';
+  return {
+    id: payload.id,
+    model: payload.model,
+    created: payload.created ?? payload.created_at ?? Math.floor(Date.now() / 1000),
+    object: payload.object === 'response' ? 'response' : 'chat.completion',
+    choices: [
+      {
+        message,
+        finish_reason: finishReason,
+      },
+    ],
+  };
+}
+
+function extractMessageFromOutputs(output?: ResponsesApiOutput[]): GrokChatMessage {
+  const first = output?.[0];
+  const text = first?.content
+    ?.map((item) => item.text?.trim())
+    .filter(Boolean)
+    .join('\n')
+    ?.trim();
+  return {
+    role: (first?.role as GrokRole) ?? 'assistant',
+    content: text ?? '',
+  };
+}
+
+function extractDeltaFromOutputs(output?: ResponsesApiOutput[]): string | undefined {
+  const message = extractMessageFromOutputs(output);
+  return message.content || undefined;
+}
+
+function parseSseEvent(block: string): { eventName?: string; data?: string } | null {
+  const lines = block.split('\n');
+  let eventName: string | undefined;
+  const dataLines: string[] = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+    if (line.startsWith('event:')) {
+      eventName = line.slice(6).trim();
+    } else if (line.startsWith('data:')) {
+      dataLines.push(line.slice(5).trim());
+    }
+  }
+
+  if (!dataLines.length) {
+    return null;
+  }
+
+  return { eventName, data: dataLines.join('\n') };
+}
+
+function safeJsonParse<T>(value: string): T | null {
+  try {
+    return JSON.parse(value) as T;
+  } catch (error) {
+    console.error('Failed to parse SSE payload', error, value);
+    return null;
+  }
 }
 
 /**
