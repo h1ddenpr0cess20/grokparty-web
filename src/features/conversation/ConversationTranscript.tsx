@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type HTMLAttributes, type ReactNode } from 'react';
 import clsx from 'clsx';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -91,6 +91,29 @@ function MarkdownMessage({ content, isPending }: { content: string; isPending: b
   );
 }
 
+type MarkdownCodeProps = HTMLAttributes<HTMLElement> & {
+  inline?: boolean;
+  children?: ReactNode;
+};
+
+const MarkdownCodeBlock = ({ inline, className, children, ...props }: MarkdownCodeProps) => {
+  const baseClass = clsx('font-mono text-xs', className);
+  if (!inline) {
+    return (
+      <pre className="overflow-x-auto rounded-xl bg-border/20 p-4">
+        <code className={baseClass} {...props}>
+          {children}
+        </code>
+      </pre>
+    );
+  }
+  return (
+    <code className={clsx('rounded-md bg-border/30 px-1.5 py-0.5', baseClass)} {...props}>
+      {children}
+    </code>
+  );
+};
+
 const MARKDOWN_COMPONENTS: Components = {
   a: ({ children, ...props }) => (
     <a
@@ -102,23 +125,7 @@ const MARKDOWN_COMPONENTS: Components = {
       {children}
     </a>
   ),
-  code: ({ inline, className, children, ...props }) => {
-    const baseClass = clsx('font-mono text-xs', className);
-    if (!inline) {
-      return (
-        <pre className="overflow-x-auto rounded-xl bg-border/20 p-4">
-          <code className={baseClass} {...props}>
-            {children}
-          </code>
-        </pre>
-      );
-    }
-    return (
-      <code className={clsx('rounded-md bg-border/30 px-1.5 py-0.5', baseClass)} {...props}>
-        {children}
-      </code>
-    );
-  },
+  code: MarkdownCodeBlock,
   img: ({ alt, src }) => {
     if (!src) {
       return null;
