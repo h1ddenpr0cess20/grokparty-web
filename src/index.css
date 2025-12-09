@@ -53,6 +53,63 @@
   .glass-panel {
     @apply border border-border bg-surface shadow-card dark:border-border/70 dark:bg-surface;
   }
+
+  .markdown-body {
+    @apply leading-relaxed break-words;
+  }
+
+  .markdown-body > * {
+    margin-bottom: 0.75rem;
+  }
+
+  .markdown-body > *:last-child {
+    margin-bottom: 0;
+  }
+
+  .markdown-body p {
+    @apply whitespace-pre-wrap;
+  }
+
+  .markdown-body ul,
+  .markdown-body ol {
+    @apply pl-5;
+  }
+
+  .markdown-body ul {
+    @apply list-disc space-y-1;
+  }
+
+  .markdown-body ol {
+    @apply list-decimal space-y-1;
+  }
+
+  .markdown-body li {
+    text-indent: 0;
+  }
+
+  .markdown-body blockquote {
+    @apply border-l-4 border-border/60 pl-4 italic;
+  }
+
+  .markdown-body hr {
+    @apply border-border/60;
+  }
+
+  .markdown-body pre {
+    @apply overflow-x-auto rounded-xl bg-border/20 p-4;
+  }
+
+  .markdown-body code {
+    @apply rounded-md bg-border/30 px-1.5 py-0.5 font-mono text-xs;
+  }
+
+  .markdown-body pre code {
+    @apply bg-transparent p-0;
+  }
+
+  .citation-link {
+    @apply font-semibold text-primary underline decoration-primary/60 underline-offset-2 hover:decoration-primary;
+  }
 }
 
 @layer utilities {

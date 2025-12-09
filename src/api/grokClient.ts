@@ -112,11 +112,20 @@ interface ResponsesApiPayload {
   input: ResponsesApiInputItem[];
   temperature?: number;
   tools?: ResponsesApiTool[];
+  search_parameters?: ResponsesSearchParameters;
   stream?: boolean;
 }
 
 interface ResponsesApiTool {
   type: ResponsesToolType;
+}
+
+interface ResponsesSearchParameters {
+  mode?: 'off' | 'auto' | 'on';
+  return_citations?: boolean;
+  sources?: unknown[];
+  from_date?: string;
+  to_date?: string;
 }
 
 interface ResponsesApiResponse {
@@ -307,8 +316,11 @@ export class GrokClient {
         if (eventType === 'response.completed' || eventType === 'response.output_text.completed') {
           const normalized = normalizeResponsesPayload(payload.response ?? (payload as ResponsesApiResponse));
           const message = normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText };
-          collectedText = message.content;
-          yield { type: 'message', message };
+          const finalMessage = !message.content?.trim() && collectedText
+            ? { ...message, content: collectedText }
+            : message;
+          collectedText = finalMessage.content;
+          yield { type: 'message', message: finalMessage };
           completed = true;
           shouldStop = true;
           break;
@@ -374,6 +386,10 @@ function buildResponsesPayload(request: GrokChatRequest, stream: boolean): Respo
 
   if (!request.disableSearch) {
     payload.tools = DEFAULT_RESPONSES_TOOLS;
+    // Context7 xAI docs: return_citations defaults to true; disable to keep transcript clean.
+    payload.search_parameters = {
+      return_citations: false,
+    };
   }
 
   return payload;
@@ -381,7 +397,7 @@ function buildResponsesPayload(request: GrokChatRequest, stream: boolean): Respo
 
 function normalizeResponsesPayload(payload: ResponsesApiResponse): GrokResponse {
   const message = extractMessageFromOutputs(payload.output);
-  const finishReason = payload.output?.[0]?.status === 'incomplete' ? 'incomplete' : 'stop';
+  const finishReason = deriveFinishReason(payload.output);
   return {
     id: payload.id,
     model: payload.model,
@@ -397,16 +413,45 @@ function normalizeResponsesPayload(payload: ResponsesApiResponse): GrokResponse 
 }
 
 function extractMessageFromOutputs(output?: ResponsesApiOutput[]): GrokChatMessage {
-  const first = output?.[0];
-  const text = first?.content
-    ?.map((item) => item.text?.trim())
-    .filter(Boolean)
-    .join('\n')
-    ?.trim();
-  return {
-    role: (first?.role as GrokRole) ?? 'assistant',
-    content: text ?? '',
-  };
+  if (!output?.length) {
+    return { role: 'assistant', content: '' };
+  }
+
+  let fallback: GrokChatMessage | null = null;
+
+  for (let index = output.length - 1; index >= 0; index -= 1) {
+    const entry = output[index];
+    const role = (entry.role as GrokRole) ?? 'assistant';
+    const text = entry.content
+      ?.map((item) => item.text?.trim())
+      .filter(Boolean)
+      .join('\n')
+      ?.trim();
+
+    if (!text) {
+      continue;
+    }
+
+    const candidate: GrokChatMessage = { role, content: text };
+
+    if (!fallback) {
+      fallback = candidate;
+    }
+
+    if (entry.type === 'output_text') {
+      return candidate;
+    }
+  }
+
+  return fallback ?? { role: (output[output.length - 1]?.role as GrokRole) ?? 'assistant', content: '' };
+}
+
+function deriveFinishReason(output?: ResponsesApiOutput[]): 'stop' | 'incomplete' {
+  if (!output?.length) {
+    return 'stop';
+  }
+  const last = output[output.length - 1];
+  return last?.status === 'incomplete' ? 'incomplete' : 'stop';
 }
 
 function extractDeltaFromOutputs(output?: ResponsesApiOutput[]): string | undefined {

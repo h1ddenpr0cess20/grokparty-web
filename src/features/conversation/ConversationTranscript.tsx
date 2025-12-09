@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
 import clsx from 'clsx';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
 import { useConversationMessages, useParticipantsMap } from '@/state/sessionSelectors';
 import { useSessionStore } from '@/state/sessionStore';
 
@@ -63,14 +66,7 @@ export function ConversationTranscript() {
                         )
                     : null}
                 </div>
-                <p
-                  className={clsx(
-                    'mt-3 whitespace-pre-wrap text-sm',
-                    isPendingContent ? 'text-muted' : 'text-foreground',
-                  )}
-                >
-                  {message.content}
-                </p>
+                <MarkdownMessage content={message.content} isPending={isPendingContent} />
               </li>
             );
           })
@@ -79,6 +75,76 @@ export function ConversationTranscript() {
     </div>
   );
 }
+
+function MarkdownMessage({ content, isPending }: { content: string; isPending: boolean }) {
+  return (
+    <div
+      className={clsx(
+        'markdown-body mt-3 text-sm',
+        isPending ? 'text-muted' : 'text-foreground',
+      )}
+    >
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+        {content || ''}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
+const MARKDOWN_COMPONENTS: Components = {
+  a: ({ children, ...props }) => (
+    <a
+      {...props}
+      className="text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+      target="_blank"
+      rel="noreferrer"
+    >
+      {children}
+    </a>
+  ),
+  code: ({ inline, className, children, ...props }) => {
+    const baseClass = clsx('font-mono text-xs', className);
+    if (!inline) {
+      return (
+        <pre className="overflow-x-auto rounded-xl bg-border/20 p-4">
+          <code className={baseClass} {...props}>
+            {children}
+          </code>
+        </pre>
+      );
+    }
+    return (
+      <code className={clsx('rounded-md bg-border/30 px-1.5 py-0.5', baseClass)} {...props}>
+        {children}
+      </code>
+    );
+  },
+  img: ({ alt, src }) => {
+    if (!src) {
+      return null;
+    }
+
+    const label = alt?.trim() ?? '';
+    const isCitation = label ? /^\d+$/.test(label) : false;
+
+    if (isCitation) {
+      return (
+        <a
+          href={src}
+          target="_blank"
+          rel="noreferrer"
+          className="citation-link"
+        >
+          [{label}]
+        </a>
+      );
+    }
+
+    return (
+      <img src={src} alt={alt ?? ''} className="max-h-80 w-full rounded-xl object-contain" />
+    );
+  },
+};
 
 function PendingSpinner({ withLabel = true }: { withLabel?: boolean }) {
   return (

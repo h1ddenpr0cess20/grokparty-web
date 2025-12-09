@@ -280,7 +280,7 @@ export class ConversationEngine {
           state.updateMessage(messageId, (prev) => ({
             ...prev,
             status: 'streaming',
-            content: prev.content + event.delta,
+            content: stripCitationArtifacts(prev.content + event.delta),
             createdAt: Date.now(),
           }));
         }
@@ -288,7 +288,7 @@ export class ConversationEngine {
           state.updateMessage(messageId, (prev) => ({
             ...prev,
             status: 'completed',
-            content: event.message.content,
+            content: stripCitationArtifacts(event.message.content),
             createdAt: Date.now(),
           }));
         }
@@ -501,4 +501,26 @@ export function createId() {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+const CITATION_WITH_URL_REGEX = /\[\d+\]\([^)]*\)/g;
+const CITATION_STANDALONE_REGEX = /\[\d+\]/g;
+const CITATION_IMAGE_REGEX = /!\[\d+\]\([^)]*\)/g;
+const CITATION_DEFINITION_REGEX = /^\[\d+\]:\s*https?:\/\/\S+\s*(?:\n|$)/gm;
+
+export function stripCitationArtifacts(value: string): string {
+  if (!value) {
+    return '';
+  }
+
+  let next = value
+    .replace(CITATION_DEFINITION_REGEX, '')
+    .replace(CITATION_IMAGE_REGEX, '')
+    .replace(CITATION_WITH_URL_REGEX, '')
+    .replace(CITATION_STANDALONE_REGEX, '');
+
+  next = next.replace(/[ \t]{2,}/g, ' ');
+  next = next.replace(/\s+\n/g, '\n');
+  next = next.replace(/\n{3,}/g, '\n\n');
+  return next;
 }
