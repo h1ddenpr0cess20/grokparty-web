@@ -7,7 +7,7 @@ GrokParty Web is a browser application for orchestrating Grok-powered, multi-spe
 - Live conversation view with pause, resume, stop, and host interjection controls.
 - Secure-by-default API key handling that never leaves the browser.
 - Responsive, dark-mode friendly UI tuned for longer-running sessions.
-- Transcript export that bundles both the conversation and its configuration.
+- Transcript export that bundles both the conversation and its configuration (JSON, Markdown, HTML, or plain text).
 
 ## Key Workflows
 
@@ -21,7 +21,7 @@ Define at least two personas, each with a name, short description, and Grok mode
 Once the configuration looks right, launch the conversation. Responses stream into the transcript in real time while the side panel keeps the scenario context nearby. You can pause, resume, or stop at any point and insert host-authored messages that use the configured display name so participants respond directly to you.
 
 ### 4. Review and export
-Every run records the scenario, participants, decision model, and full transcript. Download the bundle as JSON for auditing or tooling handoff, or reset and start a new experiment right away.
+Every run records the scenario, participants, decision model, and full transcript. Download the bundle as JSON, Markdown, HTML, or plain text for auditing or tooling handoff, or reset and start a new experiment right away.
 
 ## Documentation
 - [Getting started guide](docs/getting-started.md)

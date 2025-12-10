@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
@@ -9,13 +10,21 @@ import { Input } from '@/components/ui/Input';
 import { Stepper } from '@/components/ui/Stepper';
 import { Switch } from '@/components/ui/Switch';
 import { useGrokModels } from './useGrokModels';
-import { useSessionStore, type ConversationConfig } from '@/state/sessionStore';
+import {
+  useSessionStore,
+  type ConversationConfig,
+  type Participant,
+  DEFAULT_PARTICIPANT_TEMPERATURE,
+  DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+} from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
 const PARTICIPANT_SCHEMA = z.object({
   id: z.string().min(1),
   persona: z.string().min(1, 'Persona is required'),
   model: z.string().min(1, 'Model selection is required'),
+  temperature: z.number().min(0).max(2),
+  enableSearch: z.boolean(),
 });
 
 const WIZARD_SCHEMA = z.object({
@@ -24,8 +33,6 @@ const WIZARD_SCHEMA = z.object({
   setting: z.string().trim(),
   mood: z.string().min(1, 'Mood is required'),
   userName: z.string().trim().max(48).optional(),
-  temperature: z.number().min(0).max(2),
-  enableSearch: z.boolean(),
   decisionModel: z.string().min(1, 'Choose a decision model'),
   participants: z.array(PARTICIPANT_SCHEMA).min(2, 'At least two participants are required'),
 });
@@ -113,14 +120,14 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
       setting,
       mood: values.mood,
       userName: values.userName?.trim() || '',
-      temperature: values.temperature,
-      enableSearch: values.enableSearch,
       decisionModel: values.decisionModel,
     });
     const normalizedParticipants = values.participants.map((participant) => ({
       id: participant.id,
       persona: participant.persona.trim(),
       model: participant.model,
+      temperature: participant.temperature,
+      enableSearch: participant.enableSearch,
     }));
     setParticipants(normalizedParticipants);
     resetSession();
@@ -171,7 +178,7 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
 }
 
 const stepFieldMap: Record<StepId, (keyof WizardValues)[]> = {
-  scenario: ['conversationType', 'mood', 'temperature', 'enableSearch', 'userName'],
+  scenario: ['conversationType', 'mood', 'userName'],
   participants: ['participants', 'decisionModel'],
 };
 
@@ -182,12 +189,8 @@ interface ScenarioStepProps {
 function ScenarioStep({ form }: ScenarioStepProps) {
   const {
     register,
-    control,
     formState: { errors },
-    watch,
   } = form;
-  const temperatureField = register('temperature', { valueAsNumber: true });
-  const temperatureValue = watch('temperature') ?? 0.8;
 
   return (
     <section className="grid gap-6 md:grid-cols-2">
@@ -229,34 +232,6 @@ function ScenarioStep({ form }: ScenarioStepProps) {
       >
         <Input placeholder="Where is this taking place?" {...register('setting')} />
       </FormField>
-      <FormField
-        label="Temperature"
-        description="Higher values increase creativity."
-        error={errors.temperature?.message as string | undefined}
-      >
-        <input
-          type="range"
-          min={0}
-          max={2}
-          step={0.1}
-          {...temperatureField}
-          className="w-full"
-        />
-        <p className="text-sm text-muted">{temperatureValue.toFixed(1)}</p>
-      </FormField>
-      <Controller
-        control={control}
-        name="enableSearch"
-        render={({ field }) => (
-          <FormField label="Web search assistance">
-            <Switch
-              checked={field.value}
-              onClick={() => field.onChange(!field.value)}
-              label={field.value ? 'Enabled' : 'Disabled'}
-            />
-          </FormField>
-        )}
-      />
       <>
         <FormField
           label="Your name"
@@ -295,10 +270,19 @@ function ParticipantsStep({
 }: ParticipantsStepProps) {
   const {
     register,
+    control,
     formState: { errors },
   } = form;
+  const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({});
   const decisionField = register('decisionModel');
   const modelOptions = useMemo(() => models.map((m) => ({ value: m.id, label: m.name ?? m.id })), [models]);
+
+  const togglePanel = (id: string) => {
+    setExpandedPanels((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   return (
     <section className="flex flex-col gap-6">
@@ -333,6 +317,10 @@ function ParticipantsStep({
       <div className="flex flex-col gap-4">
         {fields.map((field, index) => {
           const participantErrors = errors.participants?.[index];
+          const temperatureFieldName = `participants.${index}.temperature` as const;
+          const temperatureField = register(temperatureFieldName, { valueAsNumber: true });
+          const temperatureValue = form.watch(temperatureFieldName) ?? DEFAULT_PARTICIPANT_TEMPERATURE;
+          const isExpanded = expandedPanels[field.id] ?? false;
           return (
             <div key={field.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
               <div className="flex items-center justify-between">
@@ -366,6 +354,53 @@ function ParticipantsStep({
                   </select>
                 </FormField>
               </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-2xl border border-border bg-border/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted transition hover:text-foreground"
+                  onClick={() => togglePanel(field.id)}
+                >
+                  Character settings
+                  <ChevronIcon expanded={isExpanded} />
+                </button>
+                {isExpanded ? (
+                  <div className="mt-3 rounded-2xl border border-dashed border-border/80 bg-border/5 p-4">
+                    <div className="space-y-4">
+                      <FormField
+                        label="Creativity (temperature)"
+                        description="Higher values increase creativity for this character."
+                        error={participantErrors?.temperature?.message as string | undefined}
+                      >
+                        <input
+                          type="range"
+                          min={0}
+                          max={2}
+                          step={0.1}
+                          className="w-full"
+                          {...temperatureField}
+                        />
+                        <p className="text-sm text-muted">{temperatureValue.toFixed(1)}</p>
+                      </FormField>
+                      <Controller
+                        control={control}
+                        name={`participants.${index}.enableSearch` as const}
+                        render={({ field }) => (
+                          <FormField
+                            label="Web search assistance"
+                            description="Allow this character to pull in live information from the web."
+                          >
+                            <Switch
+                              checked={field.value}
+                              onClick={() => field.onChange(!field.value)}
+                              label={field.value ? 'Enabled' : 'Disabled'}
+                            />
+                          </FormField>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
           );
         })}
@@ -382,14 +417,29 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
   const decisionModel = config.decisionModel ?? 'grok-4';
   const topic = config.topic?.trim() ?? '';
   const setting = config.setting?.trim() ?? '';
+  const legacyConfig = config as ConversationConfig & { enableSearch?: boolean };
+  const legacyEnableSearch =
+    typeof legacyConfig.enableSearch === 'boolean'
+      ? legacyConfig.enableSearch
+      : DEFAULT_PARTICIPANT_ENABLE_SEARCH;
   const participants = (config.participants.length
     ? config.participants
     : [createEmptyParticipant(decisionModel), createEmptyParticipant(decisionModel)]
-  ).map((participant) => ({
-    id: participant.id,
-    persona: participant.persona,
-    model: participant.model || decisionModel,
-  }));
+  ).map((participant) => {
+    const partialParticipant = participant as Partial<Participant>;
+    return {
+      id: participant.id,
+      persona: participant.persona,
+      model: participant.model || decisionModel,
+      temperature: Number.isFinite(partialParticipant.temperature)
+        ? (partialParticipant.temperature as number)
+        : DEFAULT_PARTICIPANT_TEMPERATURE,
+      enableSearch:
+        typeof partialParticipant.enableSearch === 'boolean'
+          ? partialParticipant.enableSearch
+          : legacyEnableSearch,
+    };
+  });
 
   while (participants.length < 2) {
     participants.push(createEmptyParticipant(decisionModel));
@@ -401,8 +451,6 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
     setting: setting && setting.toLowerCase() !== 'anywhere' ? setting : '',
     mood: config.mood ?? 'friendly',
     userName: config.userName?.trim() ?? '',
-    temperature: config.temperature ?? 0.8,
-    enableSearch: config.enableSearch ?? false,
     decisionModel,
     participants,
   };
@@ -413,6 +461,8 @@ function createEmptyParticipant(defaultModel: string | undefined): WizardValues[
     id: createId(),
     persona: '',
     model: defaultModel ?? 'grok-4',
+    temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
+    enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
   };
 }
 
@@ -425,4 +475,22 @@ function createId() {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={clsx('size-4 transition-transform', expanded ? 'rotate-180 text-foreground' : 'text-muted')}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
 }

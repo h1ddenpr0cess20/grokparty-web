@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
 import { useConversationMessages, useParticipantsMap } from '@/state/sessionSelectors';
 import { useSessionStore } from '@/state/sessionStore';
+import { showToast } from '@/state/toastStore';
 
 /**
  * Live transcript view that auto-scrolls as new messages stream in.
@@ -55,16 +56,19 @@ export function ConversationTranscript() {
               <li key={message.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+                    <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
                     {name}
                   </span>
-                  {showStatus
-                    ? isPendingStatus
-                      ? <PendingSpinner withLabel={false} />
-                      : (
-                          <span className="text-xs uppercase tracking-wide text-muted">{formattedStatus}</span>
-                        )
-                    : null}
+                  <div className="flex items-center gap-2">
+                    {showStatus
+                      ? isPendingStatus
+                        ? <PendingSpinner withLabel={false} />
+                        : (
+                            <span className="text-xs uppercase tracking-wide text-muted">{formattedStatus}</span>
+                          )
+                      : null}
+                    <CopyButton content={message.content ?? ''} disabled={isPendingContent} />
+                  </div>
                 </div>
                 <MarkdownMessage content={message.content} isPending={isPendingContent} />
               </li>
@@ -152,6 +156,70 @@ const MARKDOWN_COMPONENTS: Components = {
     );
   },
 };
+
+function CopyButton({ content, disabled }: { content: string; disabled: boolean }) {
+  const handleCopy = async () => {
+    if (!content || disabled) {
+      return;
+    }
+
+    const text = content;
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+
+    if (!clipboard?.writeText) {
+      showToast({
+        variant: 'warning',
+        description: 'Clipboard access is unavailable. Please copy the message manually.',
+        durationMs: 5000,
+      });
+      return;
+    }
+
+    try {
+      await clipboard.writeText(text);
+      showToast({ variant: 'success', description: 'Message copied to clipboard.' });
+    } catch (error) {
+      const details = error instanceof Error ? ` ${error.message}` : '';
+      showToast({
+        variant: 'danger',
+        description: `Unable to copy the message.${details ? ` (${details})` : ''}`,
+        durationMs: 5000,
+      });
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40"
+      aria-label={disabled ? 'Message not ready to copy yet' : 'Copy message to clipboard'}
+      title={disabled ? 'Message not ready to copy yet' : 'Copy message to clipboard'}
+      onClick={handleCopy}
+      disabled={disabled}
+    >
+      <CopyIcon className="size-4" />
+    </button>
+  );
+}
+
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      <rect x="9" y="9" width="10" height="12" rx="2" ry="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h8" />
+    </svg>
+  );
+}
 
 function PendingSpinner({ withLabel = true }: { withLabel?: boolean }) {
   return (

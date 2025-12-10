@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TranscriptActions } from './TranscriptActions';
+import { buildTranscriptExport } from './transcriptExport';
 import { resetSessionStore } from '@/test/testUtils';
-import { useSessionStore, createEmptyMessage } from '@/state/sessionStore';
+import { useSessionStore, createEmptyMessage, type ConversationConfig, type Participant } from '@/state/sessionStore';
 
 describe('TranscriptActions', () => {
   beforeEach(() => {
@@ -40,5 +41,130 @@ describe('TranscriptActions', () => {
     revokeObjectURL.mockRestore();
     clickSpy.mockRestore();
     removeSpy.mockRestore();
+  });
+});
+
+describe('buildTranscriptExport', () => {
+  const baseConfig: ConversationConfig = {
+    conversationType: 'panel',
+    topic: 'AI and society',
+    setting: 'Conference stage',
+    mood: 'lively',
+    userName: 'Host',
+    decisionModel: 'grok-4',
+    participants: [
+      {
+        id: 'p1',
+        displayName: 'Ada',
+        persona: 'Ada persona',
+        model: 'grok-4',
+        color: '#fff',
+        temperature: 0.75,
+        enableSearch: true,
+      },
+      {
+        id: 'p2',
+        displayName: 'Lin',
+        persona: 'Lin persona',
+        model: 'grok-3',
+        color: '#000',
+        temperature: 0.65,
+        enableSearch: false,
+      },
+    ],
+  };
+
+  const participantsMap = new Map<string, Participant>(
+    baseConfig.participants.map((participant) => [participant.id, participant]),
+  );
+
+  const messages = [
+    createEmptyMessage({
+      id: 'msg-1',
+      speakerId: 'p1',
+      content: 'Hello world',
+      status: 'completed',
+    }),
+  ];
+
+  const exportedAt = new Date('2024-01-01T00:00:00.000Z');
+
+  it('builds JSON export with metadata bundle', () => {
+    const result = buildTranscriptExport({
+      format: 'json',
+      config: baseConfig,
+      messages,
+      participants: participantsMap,
+      exportedAt,
+    });
+
+    expect(result.mimeType).toBe('application/json');
+    expect(result.extension).toBe('json');
+    const parsed = JSON.parse(result.content);
+    expect(parsed.config.conversationType).toBe('panel');
+    expect(parsed.messages).toHaveLength(1);
+    expect(parsed.exportedAt).toBe('2024-01-01T00:00:00.000Z');
+  });
+
+  it('builds markdown export with transcript entries', () => {
+    const result = buildTranscriptExport({
+      format: 'markdown',
+      config: baseConfig,
+      messages,
+      participants: participantsMap,
+      exportedAt,
+    });
+
+    expect(result.mimeType).toBe('text/markdown');
+    expect(result.extension).toBe('md');
+    expect(result.content).toContain('# GrokParty Transcript');
+    expect(result.content).toContain('**Conversation Type:** panel');
+    expect(result.content).toContain('1. **Ada** – grok-4 (Temp: 0.75, Search: Enabled)');
+    expect(result.content).toContain('**Ada:** Hello world');
+  });
+
+  it('builds plain text export with transcript entries', () => {
+    const result = buildTranscriptExport({
+      format: 'text',
+      config: baseConfig,
+      messages,
+      participants: participantsMap,
+      exportedAt,
+    });
+
+    expect(result.mimeType).toBe('text/plain');
+    expect(result.extension).toBe('txt');
+    expect(result.content).toContain('GrokParty Transcript');
+    expect(result.content).toContain('Conversation Type: panel');
+    expect(result.content).toContain('1. Ada – grok-4 (Temp: 0.75, Search: Enabled)');
+    expect(result.content).toContain('Ada: Hello world');
+  });
+
+  it('builds HTML export with escaped transcript entries', () => {
+    const htmlMessages = [
+      ...messages,
+      createEmptyMessage({
+        id: 'msg-2',
+        speakerId: 'p2',
+        content: '<script>alert("xss")</script>',
+        status: 'completed',
+      }),
+    ];
+
+    const result = buildTranscriptExport({
+      format: 'html',
+      config: baseConfig,
+      messages: htmlMessages,
+      participants: participantsMap,
+      exportedAt,
+    });
+
+    expect(result.mimeType).toBe('text/html');
+    expect(result.extension).toBe('html');
+    expect(result.content).toContain('<h1>GrokParty Transcript</h1>');
+    expect(result.content).toContain('<strong>Conversation Type:</strong> panel');
+    expect(result.content).toContain('<h2>Participants</h2>');
+    expect(result.content).toContain('<strong>Ada:</strong> Hello world');
+    expect(result.content).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
   });
 });

@@ -24,6 +24,8 @@ export interface Participant {
   persona: string;
   model: string;
   color: string;
+  temperature: number;
+  enableSearch: boolean;
 }
 
 /**
@@ -33,6 +35,8 @@ export interface ParticipantInput {
   id: string;
   persona: string;
   model: string;
+  temperature: number;
+  enableSearch: boolean;
 }
 
 /**
@@ -44,8 +48,6 @@ export interface ConversationConfig {
   setting: string;
   mood: string;
   userName?: string;
-  temperature: number;
-  enableSearch: boolean;
   decisionModel: string;
   participants: Participant[];
 }
@@ -96,8 +98,6 @@ const DEFAULT_CONFIG: ConversationConfig = {
   setting: '',
   mood: 'friendly',
   userName: '',
-  temperature: 0.8,
-  enableSearch: false,
   decisionModel: 'grok-4',
   participants: [],
 };
@@ -116,22 +116,34 @@ export const PARTICIPANT_COLORS = [
   '#ec4899',
 ];
 
+export const DEFAULT_PARTICIPANT_TEMPERATURE = 0.8;
+export const DEFAULT_PARTICIPANT_ENABLE_SEARCH = false;
+
 const createDefaultParticipant = (index: number): Participant =>
   formatParticipant(
     {
       id: createId(),
       persona: '',
       model: DEFAULT_CONFIG.decisionModel,
+      temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
+      enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
     },
     index,
   );
 
 function withDefaultParticipants(config: ConversationConfig): ConversationConfig {
-  if (config.participants.length >= 2) {
-    return config;
-  }
+  const legacyEnableSearch = getLegacyEnableSearch(config);
+  const participants = config.participants.map((participant, index) => {
+    const partialParticipant = participant as Partial<Participant>;
+    return {
+      ...participant,
+      displayName: participant.displayName ?? deriveDisplayName(participant.persona, index),
+      color: participant.color ?? PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length],
+      temperature: normalizeTemperature(partialParticipant.temperature),
+      enableSearch: normalizeEnableSearch(partialParticipant.enableSearch, legacyEnableSearch),
+    };
+  });
 
-  const participants = [...config.participants];
   while (participants.length < 2) {
     participants.push(createDefaultParticipant(participants.length));
   }
@@ -183,6 +195,8 @@ export const useSessionStore = create<ConversationSessionState>()(
             id: existing.id,
             persona: existing.persona,
             model: existing.model,
+            temperature: existing.temperature,
+            enableSearch: existing.enableSearch,
           }));
 
           const index = baseInputs.findIndex((entry) => entry.id === participant.id);
@@ -209,6 +223,8 @@ export const useSessionStore = create<ConversationSessionState>()(
               id: participant.id,
               persona: participant.persona,
               model: participant.model,
+              temperature: participant.temperature,
+              enableSearch: participant.enableSearch,
             }));
 
           return {
@@ -312,6 +328,8 @@ function formatParticipant(input: Partial<ParticipantInput> & { persona: string;
     persona,
     model: input.model,
     color: PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length],
+    temperature: normalizeTemperature(input.temperature),
+    enableSearch: normalizeEnableSearch(input.enableSearch),
   };
 }
 
@@ -349,4 +367,26 @@ function clone<T>(value: T): T {
     return structuredClone(value);
   }
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function normalizeTemperature(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.min(2, Math.max(0, value));
+  }
+  return DEFAULT_PARTICIPANT_TEMPERATURE;
+}
+
+function normalizeEnableSearch(value: unknown, fallback = DEFAULT_PARTICIPANT_ENABLE_SEARCH): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  return fallback;
+}
+
+function getLegacyEnableSearch(config: ConversationConfig): boolean {
+  const maybeLegacy = (config as ConversationConfig & { enableSearch?: boolean }).enableSearch;
+  if (typeof maybeLegacy === 'boolean') {
+    return maybeLegacy;
+  }
+  return DEFAULT_PARTICIPANT_ENABLE_SEARCH;
 }

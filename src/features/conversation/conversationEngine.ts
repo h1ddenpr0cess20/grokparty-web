@@ -1,5 +1,10 @@
 import type { GrokClient, GrokChatMessage } from '@/api/grokClient';
-import { useSessionStore, type ConversationConfig, type Participant } from '@/state/sessionStore';
+import {
+  useSessionStore,
+  type ConversationConfig,
+  type Participant,
+  DEFAULT_PARTICIPANT_TEMPERATURE,
+} from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
 interface ConversationEngineOptions {
@@ -266,13 +271,17 @@ export class ConversationEngine {
     this.currentController = controller;
 
     try {
+      const speakerTemperature = Number.isFinite(speaker.temperature)
+        ? speaker.temperature
+        : DEFAULT_PARTICIPANT_TEMPERATURE;
+
       for await (const event of this.client.streamChatCompletion(
         apiKey,
         {
           model: speaker.model,
           messages,
-          temperature: config.temperature,
-          disableSearch: !config.enableSearch,
+          temperature: speakerTemperature,
+          disableSearch: !speaker.enableSearch,
         },
         controller.signal,
       )) {

@@ -26,7 +26,7 @@ This document summarizes the automated test approach for GrokParty Web.
 ## Manual QA Checklist
 - API key add/update/remember flows
 - Conversation start, pause, resume, stop
-- Transcript download and JSON structure
+- Transcript download across JSON/Markdown/HTML/plain text
 - Dark mode and reduced motion preferences
 - Responsive layouts for key breakpoints (mobile, tablet, desktop)
 

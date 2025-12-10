@@ -44,7 +44,7 @@ GrokParty Web is a client-only React application that orchestrates multi-charact
 3. **Streaming Loop**: For each turn, `ConversationEngine.emitMessage` streams text via `GrokClient.streamChatCompletion`, updating the store incrementally for UI reactivity. A rolling history buffer feeds subsequent prompts.
 4. **Speaker Selection**: `chooseNextSpeaker` either alternates (two participants) or queries Grok with a decision prompt to pick the next participant; failures fall back to randomness to keep the loop moving.
 5. **Controls**: `pause` defers until the current message resolves, `resume` flips status back to `streaming`, `queueUserInterjection` injects a host-authored turn using the configured `userName`, and `stop` aborts the in-flight request while marking the session `completed`.
-6. **Transcript Actions**: Users can download the conversation with metadata as JSON via `TranscriptActions`.
+6. **Transcript Actions**: Users can download the conversation with metadata as JSON, Markdown, HTML, or plain text via `TranscriptActions`.
 
 ## Persistence Strategy
 - **Session Store**: Uses `zustand/persist` with `localStorage`. API keys are stored only if the user opts into "remember" mode; otherwise they remain in-memory. Configuration defaults guarantee two starter participants so the UI does not render empty states.
