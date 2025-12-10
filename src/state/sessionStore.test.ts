@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { resetSessionStore } from '@/test/testUtils';
-import { createEmptyMessage, PARTICIPANT_COLORS, useSessionStore } from './sessionStore';
+import {
+  createEmptyMessage,
+  PARTICIPANT_COLORS,
+  useSessionStore,
+  DEFAULT_PARTICIPANT_TEMPERATURE,
+  DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+} from './sessionStore';
 
 describe('sessionStore', () => {
   beforeEach(() => {
@@ -10,8 +16,8 @@ describe('sessionStore', () => {
   it('normalizes participant display names and colors when setting participants', () => {
     const store = useSessionStore.getState();
     store.setParticipants([
-      { id: 'p1', persona: '  Alice the strategist  ', model: 'grok-4' },
-      { id: 'p2', persona: 'Captain Bob the fearless leader.', model: 'grok-4' },
+      createParticipantInput('p1', '  Alice the strategist  ', 'grok-4'),
+      createParticipantInput('p2', 'Captain Bob the fearless leader.', 'grok-4'),
     ]);
 
     const participants = useSessionStore.getState().config.participants;
@@ -25,8 +31,8 @@ describe('sessionStore', () => {
   it('keeps emoji-only personas as display names', () => {
     const store = useSessionStore.getState();
     store.setParticipants([
-      { id: 'p1', persona: '😄', model: 'grok-4' },
-      { id: 'p2', persona: '😀 The cheerful one', model: 'grok-4' },
+      createParticipantInput('p1', '😄', 'grok-4'),
+      createParticipantInput('p2', '😀 The cheerful one', 'grok-4'),
     ]);
 
     const participants = useSessionStore.getState().config.participants;
@@ -37,9 +43,9 @@ describe('sessionStore', () => {
   it('pads participants after removal to maintain minimum count', () => {
     const store = useSessionStore.getState();
     store.setParticipants([
-      { id: 'p1', persona: 'Alice', model: 'grok-4' },
-      { id: 'p2', persona: 'Bob', model: 'grok-4' },
-      { id: 'p3', persona: 'Cara', model: 'grok-4' },
+      createParticipantInput('p1', 'Alice', 'grok-4'),
+      createParticipantInput('p2', 'Bob', 'grok-4'),
+      createParticipantInput('p3', 'Cara', 'grok-4'),
     ]);
 
     store.removeParticipant('p3');
@@ -77,7 +83,7 @@ describe('sessionStore', () => {
   });
 
   it('creates empty messages with provided overrides', () => {
-    const message = createEmptyMessage({
+const message = createEmptyMessage({
       speakerId: 'p1',
       content: 'hello',
     });
@@ -89,3 +95,13 @@ describe('sessionStore', () => {
     expect(message.content).toBe('hello');
   });
 });
+
+function createParticipantInput(id: string, persona: string, model: string) {
+  return {
+    id,
+    persona,
+    model,
+    temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
+    enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+  };
+}
