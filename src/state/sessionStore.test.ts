@@ -6,6 +6,7 @@ import {
   useSessionStore,
   DEFAULT_PARTICIPANT_TEMPERATURE,
   DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+  SESSION_STORAGE_KEY,
 } from './sessionStore';
 
 describe('sessionStore', () => {
@@ -94,6 +95,20 @@ const message = createEmptyMessage({
     expect(message.speakerId).toBe('p1');
     expect(message.content).toBe('hello');
   });
+
+  it('only persists the API key when remember is enabled', () => {
+    const store = useSessionStore.getState();
+    store.setApiKey('sk-transient');
+
+    let persisted = readPersistedState();
+    expect(persisted?.rememberApiKey).toBe(false);
+    expect(persisted?.apiKey).toBeNull();
+
+    store.setApiKey('sk-remember-me', { remember: true });
+    persisted = readPersistedState();
+    expect(persisted?.rememberApiKey).toBe(true);
+    expect(persisted?.apiKey).toBe('sk-remember-me');
+  });
 });
 
 function createParticipantInput(id: string, persona: string, model: string) {
@@ -103,5 +118,19 @@ function createParticipantInput(id: string, persona: string, model: string) {
     model,
     temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
     enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+    mcpAccess: [],
   };
+}
+
+function readPersistedState() {
+  const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw) as { state?: { rememberApiKey?: boolean; apiKey?: string | null } };
+    return parsed.state ?? null;
+  } catch {
+    return null;
+  }
 }

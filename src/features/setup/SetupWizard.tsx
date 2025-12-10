@@ -1,8 +1,15 @@
 import clsx from 'clsx';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { useMemo, useState } from 'react';
-import { Controller, useFieldArray, useForm, type FieldArrayWithId, type UseFormReturn } from 'react-hook-form';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  type FieldArrayWithId,
+  type UseFormReturn,
+  type Resolver,
+} from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
@@ -14,20 +21,53 @@ import {
   useSessionStore,
   type ConversationConfig,
   type Participant,
+  type ParticipantInput,
+  type ParticipantMcpAccess,
+  type McpServerConfig,
   DEFAULT_PARTICIPANT_TEMPERATURE,
   DEFAULT_PARTICIPANT_ENABLE_SEARCH,
 } from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
-const PARTICIPANT_SCHEMA = z.object({
+type ParticipantFormValues = {
+  id: string;
+  persona: string;
+  model: string;
+  temperature: number;
+  enableSearch: boolean;
+  mcpAccess: Array<{
+    serverId: string;
+    allowedToolNames: string[];
+  }>;
+};
+
+type WizardValues = {
+  conversationType: string;
+  topic: string;
+  setting: string;
+  mood: string;
+  userName?: string;
+  decisionModel: string;
+  participants: ParticipantFormValues[];
+};
+
+const PARTICIPANT_SCHEMA: z.ZodType<ParticipantFormValues> = z.object({
   id: z.string().min(1),
   persona: z.string().min(1, 'Persona is required'),
   model: z.string().min(1, 'Model selection is required'),
   temperature: z.number().min(0).max(2),
   enableSearch: z.boolean(),
+  mcpAccess: z
+    .array(
+      z.object({
+        serverId: z.string().min(1),
+        allowedToolNames: z.array(z.string().trim().min(1)).default([]),
+      }),
+    )
+    .default([]),
 });
 
-const WIZARD_SCHEMA = z.object({
+const WIZARD_SCHEMA: z.ZodType<WizardValues> = z.object({
   conversationType: z.string().min(1, 'Pick a conversation type'),
   topic: z.string().trim(),
   setting: z.string().trim(),
@@ -37,12 +77,12 @@ const WIZARD_SCHEMA = z.object({
   participants: z.array(PARTICIPANT_SCHEMA).min(2, 'At least two participants are required'),
 });
 
+const WIZARD_RESOLVER = zodResolver(WIZARD_SCHEMA as any) as Resolver<WizardValues, undefined, WizardValues>;
+
 const STEP_SEQUENCE = [
   { id: 'scenario', label: 'Scenario' },
   { id: 'participants', label: 'Participants' },
 ] as const;
-
-type WizardValues = z.infer<typeof WIZARD_SCHEMA>;
 
 type StepId = (typeof STEP_SEQUENCE)[number]['id'];
 
@@ -71,19 +111,20 @@ interface SetupWizardProps {
 export function SetupWizard({ onCompleted }: SetupWizardProps) {
   const navigate = useNavigate();
   const config = useSessionStore((state) => state.config);
+  const availableServers = config.mcpServers ?? [];
   const updateConfig = useSessionStore((state) => state.updateConfig);
   const setParticipants = useSessionStore((state) => state.setParticipants);
   const resetSession = useSessionStore((state) => state.resetSession);
   const [activeStep, setActiveStep] = useState<StepId>('scenario');
   const { models, status: modelsStatus, refresh } = useGrokModels();
 
-  const form = useForm<WizardValues>({
-    resolver: zodResolver(WIZARD_SCHEMA),
+  const form = useForm<WizardValues, undefined, WizardValues>({
+    resolver: WIZARD_RESOLVER,
     mode: 'onBlur',
     defaultValues: mapConfigToForm(config),
   });
 
-  const { fields: participantFields, append, remove } = useFieldArray({
+  const { fields: participantFields, append: appendParticipant, remove: removeParticipant } = useFieldArray({
     control: form.control,
     name: 'participants',
   });
@@ -110,6 +151,7 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
     }
   };
 
+
   const handleSubmit = form.handleSubmit((values) => {
     const topic = values.topic || 'anything';
     const setting = values.setting || 'anywhere';
@@ -122,13 +164,21 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
       userName: values.userName?.trim() || '',
       decisionModel: values.decisionModel,
     });
-    const normalizedParticipants = values.participants.map((participant) => ({
-      id: participant.id,
-      persona: participant.persona.trim(),
-      model: participant.model,
-      temperature: participant.temperature,
-      enableSearch: participant.enableSearch,
-    }));
+    const normalizedParticipants: ParticipantInput[] = values.participants.map((participant) => {
+      const normalizedAccess: ParticipantMcpAccess[] = participant.mcpAccess.map((access) => ({
+        serverId: access.serverId,
+        allowedToolNames: access.allowedToolNames.map((toolName) => toolName.trim()).filter(Boolean),
+      }));
+
+      return {
+        id: participant.id,
+        persona: participant.persona.trim(),
+        model: participant.model,
+        temperature: participant.temperature,
+        enableSearch: participant.enableSearch,
+        mcpAccess: normalizedAccess,
+      };
+    });
     setParticipants(normalizedParticipants);
     resetSession();
     showToast({
@@ -149,10 +199,11 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
         <ParticipantsStep
           form={form}
           fields={participantFields}
+          availableServers={availableServers}
           models={models}
           modelsStatus={modelsStatus}
-          onAdd={() => append(createEmptyParticipant(form.getValues('decisionModel')))}
-          onRemove={(index) => remove(index)}
+          onAdd={() => appendParticipant(createEmptyParticipant(form.getValues('decisionModel')))}
+          onRemove={(index) => removeParticipant(index)}
           onRefreshModels={refresh}
         />
       ) : null}
@@ -182,8 +233,10 @@ const stepFieldMap: Record<StepId, (keyof WizardValues)[]> = {
   participants: ['participants', 'decisionModel'],
 };
 
+type WizardFormReturn = UseFormReturn<WizardValues, undefined, WizardValues>;
+
 interface ScenarioStepProps {
-  form: UseFormReturn<WizardValues>;
+  form: WizardFormReturn;
 }
 
 function ScenarioStep({ form }: ScenarioStepProps) {
@@ -250,8 +303,9 @@ function ScenarioStep({ form }: ScenarioStepProps) {
 }
 
 interface ParticipantsStepProps {
-  form: UseFormReturn<WizardValues>;
+  form: WizardFormReturn;
   fields: FieldArrayWithId<WizardValues, 'participants'>[];
+  availableServers: McpServerConfig[];
   models: ReturnType<typeof useGrokModels>['models'];
   modelsStatus: ReturnType<typeof useGrokModels>['status'];
   onAdd: () => void;
@@ -262,6 +316,7 @@ interface ParticipantsStepProps {
 function ParticipantsStep({
   form,
   fields,
+  availableServers,
   models,
   modelsStatus,
   onAdd,
@@ -272,6 +327,9 @@ function ParticipantsStep({
     register,
     control,
     formState: { errors },
+    watch,
+    setValue,
+    getValues,
   } = form;
   const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({});
   const decisionField = register('decisionModel');
@@ -282,6 +340,46 @@ function ParticipantsStep({
       ...prev,
       [id]: !prev[id],
     }));
+  };
+
+  const getMcpAccess = (participantIndex: number) =>
+    watch(`participants.${participantIndex}.mcpAccess` as const) ?? [];
+
+  useEffect(() => {
+    const allowedIds = new Set(availableServers.map((server) => server.id));
+    fields.forEach((_, index) => {
+      const path = `participants.${index}.mcpAccess` as const;
+      const current = getValues(path) ?? [];
+      const filtered = current.filter((entry) => allowedIds.has(entry.serverId));
+      if (filtered.length !== current.length) {
+        setValue(path, filtered, { shouldDirty: true });
+      }
+    });
+  }, [availableServers, fields, getValues, setValue]);
+
+  const toggleServerAccess = (participantIndex: number, serverId: string, hasAccess: boolean) => {
+    const path = `participants.${participantIndex}.mcpAccess` as const;
+    const current = getValues(path) ?? [];
+    const nextValue = hasAccess
+      ? current.filter((entry) => entry.serverId !== serverId)
+      : [...current, { serverId, allowedToolNames: [] }];
+    setValue(path, nextValue, { shouldDirty: true });
+  };
+
+  const updateAllowedToolNames = (participantIndex: number, serverId: string, value: string) => {
+    const path = `participants.${participantIndex}.mcpAccess` as const;
+    const current = getValues(path) ?? [];
+    const nextValue = current.map((entry) => {
+      if (entry.serverId !== serverId) {
+        return entry;
+      }
+      const parsed = value
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean);
+      return { ...entry, allowedToolNames: parsed };
+    });
+    setValue(path, nextValue, { shouldDirty: true });
   };
 
   return (
@@ -320,6 +418,7 @@ function ParticipantsStep({
           const temperatureFieldName = `participants.${index}.temperature` as const;
           const temperatureField = register(temperatureFieldName, { valueAsNumber: true });
           const temperatureValue = form.watch(temperatureFieldName) ?? DEFAULT_PARTICIPANT_TEMPERATURE;
+          const participantAccess = getMcpAccess(index);
           const isExpanded = expandedPanels[field.id] ?? false;
           return (
             <div key={field.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
@@ -397,6 +496,56 @@ function ParticipantsStep({
                           </FormField>
                         )}
                       />
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-foreground">MCP access</p>
+                        {availableServers.length ? (
+                          <div className="space-y-3">
+                            {availableServers.map((server) => {
+                              if (!server?.id) {
+                                return null;
+                              }
+                              const accessEntry = participantAccess.find((entry) => entry.serverId === server.id);
+                              const hasAccess = Boolean(accessEntry);
+                              const allowedNames = accessEntry?.allowedToolNames?.join(', ') ?? '';
+                              return (
+                                <div key={server.id} className="rounded-xl border border-border/70 bg-surface/80 p-3">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div>
+                                        <p className="text-sm font-semibold text-foreground">{server.label || 'Untitled server'}</p>
+                                        <p className="break-all text-xs text-muted">{server.url}</p>
+                                      </div>
+                                      <Switch
+                                        checked={hasAccess}
+                                        onClick={() => toggleServerAccess(index, server.id, hasAccess)}
+                                        label={hasAccess ? 'Enabled' : 'Disabled'}
+                                      />
+                                    </div>
+                                    {hasAccess ? (
+                                      <FormField
+                                        label="Allowed tool names"
+                                        description="Comma-separated list. Leave blank to allow all tools."
+                                      >
+                                        <Input
+                                          value={allowedNames}
+                                          placeholder="tool_a, tool_b"
+                                          onChange={(event) =>
+                                            updateAllowedToolNames(index, server.id, event.target.value)
+                                          }
+                                        />
+                                      </FormField>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted">
+                            Configure MCP servers from the header menu to enable tool access.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ) : null}
@@ -438,6 +587,14 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
         typeof partialParticipant.enableSearch === 'boolean'
           ? partialParticipant.enableSearch
           : legacyEnableSearch,
+      mcpAccess: Array.isArray(partialParticipant.mcpAccess)
+        ? partialParticipant.mcpAccess.map((access) => ({
+            serverId: access.serverId,
+            allowedToolNames: Array.isArray(access.allowedToolNames)
+              ? access.allowedToolNames
+              : [],
+          }))
+        : [],
     };
   });
 
@@ -463,6 +620,7 @@ function createEmptyParticipant(defaultModel: string | undefined): WizardValues[
     model: defaultModel ?? 'grok-4',
     temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
     enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+    mcpAccess: [],
   };
 }
 

@@ -26,6 +26,18 @@ export interface Participant {
   color: string;
   temperature: number;
   enableSearch: boolean;
+  mcpAccess: ParticipantMcpAccess[];
+}
+
+export interface ParticipantMcpAccess {
+  serverId: string;
+  allowedToolNames: string[];
+}
+
+export interface McpServerConfig {
+  id: string;
+  label: string;
+  url: string;
 }
 
 /**
@@ -37,6 +49,7 @@ export interface ParticipantInput {
   model: string;
   temperature: number;
   enableSearch: boolean;
+  mcpAccess: ParticipantMcpAccess[];
 }
 
 /**
@@ -50,6 +63,7 @@ export interface ConversationConfig {
   userName?: string;
   decisionModel: string;
   participants: Participant[];
+  mcpServers: McpServerConfig[];
 }
 
 /**
@@ -100,9 +114,10 @@ const DEFAULT_CONFIG: ConversationConfig = {
   userName: '',
   decisionModel: 'grok-4',
   participants: [],
+  mcpServers: [],
 };
 
-const STORAGE_KEY = 'grokparty:webapp:session';
+export const SESSION_STORAGE_KEY = 'grokparty:webapp:session';
 
 /**
  * Palette used to assign stable avatar dots per-participant.
@@ -127,12 +142,15 @@ const createDefaultParticipant = (index: number): Participant =>
       model: DEFAULT_CONFIG.decisionModel,
       temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
       enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+      mcpAccess: [],
     },
     index,
   );
 
 function withDefaultParticipants(config: ConversationConfig): ConversationConfig {
   const legacyEnableSearch = getLegacyEnableSearch(config);
+  const normalizedServers = normalizeMcpServers(config.mcpServers ?? []);
+  const allowedServerIds = new Set(normalizedServers.map((server) => server.id));
   const participants = config.participants.map((participant, index) => {
     const partialParticipant = participant as Partial<Participant>;
     return {
@@ -141,6 +159,7 @@ function withDefaultParticipants(config: ConversationConfig): ConversationConfig
       color: participant.color ?? PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length],
       temperature: normalizeTemperature(partialParticipant.temperature),
       enableSearch: normalizeEnableSearch(partialParticipant.enableSearch, legacyEnableSearch),
+      mcpAccess: normalizeParticipantMcpAccess(partialParticipant.mcpAccess, allowedServerIds),
     };
   });
 
@@ -150,6 +169,7 @@ function withDefaultParticipants(config: ConversationConfig): ConversationConfig
 
   return {
     ...config,
+    mcpServers: normalizedServers,
     participants,
   };
 }
@@ -182,12 +202,15 @@ export const useSessionStore = create<ConversationSessionState>()(
         })),
 
       setParticipants: (participants) =>
-        set((state) => ({
-          config: {
-            ...state.config,
-            participants: normalizeParticipants(participants),
-          },
-        })),
+        set((state) => {
+          const serverIds = new Set(state.config.mcpServers.map((server) => server.id));
+          return {
+            config: {
+              ...state.config,
+              participants: normalizeParticipants(participants, serverIds),
+            },
+          };
+        }),
 
       upsertParticipant: (participant) =>
         set((state) => {
@@ -207,10 +230,11 @@ export const useSessionStore = create<ConversationSessionState>()(
             baseInputs[index] = participant;
           }
 
+          const serverIds = new Set(state.config.mcpServers.map((server) => server.id));
           return {
             config: {
               ...state.config,
-              participants: normalizeParticipants(baseInputs),
+              participants: normalizeParticipants(baseInputs, serverIds),
             },
           };
         }),
@@ -227,10 +251,11 @@ export const useSessionStore = create<ConversationSessionState>()(
               enableSearch: participant.enableSearch,
             }));
 
+          const serverIds = new Set(state.config.mcpServers.map((server) => server.id));
           return {
             config: {
               ...state.config,
-              participants: normalizeParticipants(filtered),
+              participants: normalizeParticipants(filtered, serverIds),
             },
           };
         }),
@@ -269,21 +294,29 @@ export const useSessionStore = create<ConversationSessionState>()(
         }),
     }),
     {
-      name: STORAGE_KEY,
+      name: SESSION_STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         rememberApiKey: state.rememberApiKey,
         apiKey: state.rememberApiKey ? state.apiKey : null,
+        config: {
+          mcpServers: state.config.mcpServers,
+        },
       }),
       merge: (persisted, current) => {
         const persistedState = (persisted as Partial<ConversationSessionState>) ?? {};
         const rememberApiKey = persistedState.rememberApiKey ?? current.rememberApiKey;
         const apiKey = rememberApiKey ? persistedState.apiKey ?? current.apiKey : null;
+        const persistedServers = persistedState.config?.mcpServers;
+        const config = Array.isArray(persistedServers)
+          ? withDefaultParticipants({ ...current.config, mcpServers: persistedServers })
+          : current.config;
 
         return {
           ...current,
           rememberApiKey,
           apiKey,
+          config,
         };
       },
     },
@@ -316,11 +349,18 @@ function createId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function normalizeParticipants(inputs: Array<Partial<ParticipantInput> & { persona: string; model: string }>): Participant[] {
-  return inputs.map((input, index) => formatParticipant(input, index));
+function normalizeParticipants(
+  inputs: Array<Partial<ParticipantInput> & { persona: string; model: string }>,
+  allowedServerIds?: Set<string>,
+): Participant[] {
+  return inputs.map((input, index) => formatParticipant(input, index, allowedServerIds));
 }
 
-function formatParticipant(input: Partial<ParticipantInput> & { persona: string; model: string }, index: number): Participant {
+function formatParticipant(
+  input: Partial<ParticipantInput> & { persona: string; model: string },
+  index: number,
+  allowedServerIds?: Set<string>,
+): Participant {
   const persona = input.persona.trim();
   return {
     id: input.id ?? createId(),
@@ -330,6 +370,7 @@ function formatParticipant(input: Partial<ParticipantInput> & { persona: string;
     color: PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length],
     temperature: normalizeTemperature(input.temperature),
     enableSearch: normalizeEnableSearch(input.enableSearch),
+    mcpAccess: normalizeParticipantMcpAccess(input.mcpAccess, allowedServerIds),
   };
 }
 
@@ -389,4 +430,55 @@ function getLegacyEnableSearch(config: ConversationConfig): boolean {
     return maybeLegacy;
   }
   return DEFAULT_PARTICIPANT_ENABLE_SEARCH;
+}
+
+function normalizeParticipantMcpAccess(
+  access: Partial<ParticipantMcpAccess>[] | undefined,
+  allowedServerIds?: Set<string>,
+): ParticipantMcpAccess[] {
+  if (!Array.isArray(access)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const allowed = allowedServerIds;
+  const result: ParticipantMcpAccess[] = [];
+
+  for (const entry of access) {
+    const serverId = entry.serverId?.trim();
+    if (!serverId || seen.has(serverId)) {
+      continue;
+    }
+    if (allowed && !allowed.has(serverId)) {
+      continue;
+    }
+    const allowedToolNames = Array.isArray(entry.allowedToolNames)
+      ? entry.allowedToolNames.map((name) => name.trim()).filter(Boolean)
+      : [];
+    result.push({ serverId, allowedToolNames });
+    seen.add(serverId);
+  }
+
+  return result;
+}
+
+function normalizeMcpServers(servers: Partial<McpServerConfig>[]): McpServerConfig[] {
+  if (!Array.isArray(servers)) {
+    return [];
+  }
+
+  return servers
+    .map((server) => {
+      const label = server.label?.trim();
+      const url = server.url?.trim();
+      if (!label || !url) {
+        return null;
+      }
+      return {
+        id: server.id ?? createId(),
+        label,
+        url,
+      } satisfies McpServerConfig;
+    })
+    .filter((server): server is McpServerConfig => Boolean(server));
 }

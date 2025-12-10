@@ -37,6 +37,15 @@ export interface GrokModel {
 
 export type GrokRole = 'system' | 'user' | 'assistant';
 
+export interface GrokMcpTool {
+  type: 'mcp';
+  server_url: string;
+  server_label: string;
+  allowed_tool_names?: string[];
+}
+
+export type GrokTool = GrokMcpTool;
+
 /**
  * Single message in a chat transcript sent to/received from the Grok API.
  */
@@ -55,6 +64,7 @@ export interface GrokChatRequest {
   temperature?: number;
   disableSearch?: boolean;
   stream?: boolean;
+  tools?: GrokTool[];
 }
 
 /**
@@ -116,9 +126,7 @@ interface ResponsesApiPayload {
   stream?: boolean;
 }
 
-interface ResponsesApiTool {
-  type: ResponsesToolType;
-}
+type ResponsesApiTool = { type: ResponsesToolType } | GrokMcpTool;
 
 interface ResponsesSearchParameters {
   mode?: 'off' | 'auto' | 'on';
@@ -384,12 +392,22 @@ function buildResponsesPayload(request: GrokChatRequest, stream: boolean): Respo
     payload.temperature = request.temperature;
   }
 
+  const tools: ResponsesApiTool[] = [];
+
   if (!request.disableSearch) {
-    payload.tools = DEFAULT_RESPONSES_TOOLS;
+    tools.push(...DEFAULT_RESPONSES_TOOLS);
     // Context7 xAI docs: return_citations defaults to true; disable to keep transcript clean.
     payload.search_parameters = {
       return_citations: false,
     };
+  }
+
+  if (request.tools?.length) {
+    tools.push(...request.tools);
+  }
+
+  if (tools.length) {
+    payload.tools = tools;
   }
 
   return payload;

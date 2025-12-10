@@ -1,4 +1,4 @@
-import type { GrokClient, GrokChatMessage } from '@/api/grokClient';
+import type { GrokClient, GrokChatMessage, GrokTool } from '@/api/grokClient';
 import {
   useSessionStore,
   type ConversationConfig,
@@ -274,6 +274,7 @@ export class ConversationEngine {
       const speakerTemperature = Number.isFinite(speaker.temperature)
         ? speaker.temperature
         : DEFAULT_PARTICIPANT_TEMPERATURE;
+      const mcpTools = buildToolsForParticipant(speaker, config);
 
       for await (const event of this.client.streamChatCompletion(
         apiKey,
@@ -282,6 +283,7 @@ export class ConversationEngine {
           messages,
           temperature: speakerTemperature,
           disableSearch: !speaker.enableSearch,
+          tools: mcpTools.length ? mcpTools : undefined,
         },
         controller.signal,
       )) {
@@ -404,6 +406,29 @@ export class ConversationEngine {
     this.history.push(`${trimmedName}: ${trimmedContent}`);
     this.trimHistory();
   }
+}
+
+function buildToolsForParticipant(participant: Participant, config: ConversationConfig): GrokTool[] {
+  if (!participant.mcpAccess?.length || !config.mcpServers?.length) {
+    return [];
+  }
+  const serverMap = new Map(config.mcpServers.map((server) => [server.id, server]));
+  const tools: GrokTool[] = [];
+
+  participant.mcpAccess.forEach((access) => {
+    const server = serverMap.get(access.serverId);
+    if (!server) {
+      return;
+    }
+    tools.push({
+      type: 'mcp',
+      server_url: server.url,
+      server_label: server.label,
+      allowed_tool_names: access.allowedToolNames?.length ? access.allowedToolNames : undefined,
+    });
+  });
+
+  return tools;
 }
 
 function buildPrompt({

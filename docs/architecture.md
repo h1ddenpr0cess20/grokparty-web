@@ -12,9 +12,9 @@ GrokParty Web is a client-only React application that orchestrates multi-charact
 - `src/test` – Test setup and render helpers.
 
 ## Layered Overview
-- **UI Shell (`src/app` + `src/components`)**: Provides routing, theming, and layout primitives. `AppProviders` wires context providers, while `AppLayout` supplies navigation, status, API key management, and the global toast viewport.
+- **UI Shell (`src/app` + `src/components`)**: Provides routing, theming, and layout primitives. `AppProviders` wires context providers, while `AppLayout` supplies navigation, status, API key management, the MCP servers menu, and the global toast viewport.
 - **Feature Modules (`src/features`)**: Self-contained vertical slices (session, setup, conversation) that compose UI, hooks, and domain logic.
-- **State Stores (`src/state`)**: Zustand stores coordinate configuration, session lifecycle, UI modals, and ephemeral toasts. Selectors wrap common derivations.
+- **State Stores (`src/state`)**: Zustand stores coordinate configuration, session lifecycle, MCP server pools + per-participant access, UI modals, and ephemeral toasts. Selectors wrap common derivations.
 - **Services (`src/api`)**: Thin TypeScript client (`GrokClient`) for Grok REST endpoints plus context/provider wiring for dependency injection.
 
 ```
@@ -40,7 +40,7 @@ GrokParty Web is a client-only React application that orchestrates multi-charact
 
 ## Conversation Lifecycle
 1. **Configuration**: Users define scenario settings and participants through the setup wizard. On submit, `useSessionStore` persists configuration and ensures at least two participants via normalization helpers.
-2. **Launch**: `ConversationControls` invokes `useConversationEngine.start()`. The engine clears existing messages, sets status to `connecting`, assigns a session ID, and kicks off the first speaker.
+2. **Launch**: `ConversationControls` invokes `useConversationEngine.start()`. The engine clears existing messages, sets status to `connecting`, assigns a session ID, and kicks off the first speaker. Per-participant MCP mappings are pulled from the store so each request carries the right `tools` definition.
 3. **Streaming Loop**: For each turn, `ConversationEngine.emitMessage` streams text via `GrokClient.streamChatCompletion`, updating the store incrementally for UI reactivity. A rolling history buffer feeds subsequent prompts.
 4. **Speaker Selection**: `chooseNextSpeaker` either alternates (two participants) or queries Grok with a decision prompt to pick the next participant; failures fall back to randomness to keep the loop moving.
 5. **Controls**: `pause` defers until the current message resolves, `resume` flips status back to `streaming`, `queueUserInterjection` injects a host-authored turn using the configured `userName`, and `stop` aborts the in-flight request while marking the session `completed`.
