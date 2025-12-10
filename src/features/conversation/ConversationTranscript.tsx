@@ -1,10 +1,56 @@
-import { useEffect, useRef, type HTMLAttributes, type ReactNode } from 'react';
+import {
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
 import clsx from 'clsx';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Components } from 'react-markdown';
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import tsxLang from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
+import tsLang from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
+import jsLang from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
+import jsonLang from 'react-syntax-highlighter/dist/esm/languages/prism/json';
+import bashLang from 'react-syntax-highlighter/dist/esm/languages/prism/bash';
+import shellLang from 'react-syntax-highlighter/dist/esm/languages/prism/shell-session';
+import pythonLang from 'react-syntax-highlighter/dist/esm/languages/prism/python';
+import htmlLang from 'react-syntax-highlighter/dist/esm/languages/prism/markup';
+import cssLang from 'react-syntax-highlighter/dist/esm/languages/prism/css';
+import markdownLang from 'react-syntax-highlighter/dist/esm/languages/prism/markdown';
+import yamlLang from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
+import goLang from 'react-syntax-highlighter/dist/esm/languages/prism/go';
+import rustLang from 'react-syntax-highlighter/dist/esm/languages/prism/rust';
 import { useConversationMessages, useParticipantsMap } from '@/state/sessionSelectors';
 import { useSessionStore } from '@/state/sessionStore';
+import { showToast } from '@/state/toastStore';
+
+SyntaxHighlighter.registerLanguage('tsx', tsxLang);
+SyntaxHighlighter.registerLanguage('ts', tsLang);
+SyntaxHighlighter.registerLanguage('typescript', tsLang);
+SyntaxHighlighter.registerLanguage('javascript', jsLang);
+SyntaxHighlighter.registerLanguage('js', jsLang);
+SyntaxHighlighter.registerLanguage('json', jsonLang);
+SyntaxHighlighter.registerLanguage('bash', bashLang);
+SyntaxHighlighter.registerLanguage('sh', shellLang);
+SyntaxHighlighter.registerLanguage('shell', shellLang);
+SyntaxHighlighter.registerLanguage('shell-session', shellLang);
+SyntaxHighlighter.registerLanguage('python', pythonLang);
+SyntaxHighlighter.registerLanguage('py', pythonLang);
+SyntaxHighlighter.registerLanguage('html', htmlLang);
+SyntaxHighlighter.registerLanguage('markup', htmlLang);
+SyntaxHighlighter.registerLanguage('css', cssLang);
+SyntaxHighlighter.registerLanguage('md', markdownLang);
+SyntaxHighlighter.registerLanguage('markdown', markdownLang);
+SyntaxHighlighter.registerLanguage('yaml', yamlLang);
+SyntaxHighlighter.registerLanguage('yml', yamlLang);
+SyntaxHighlighter.registerLanguage('go', goLang);
+SyntaxHighlighter.registerLanguage('rust', rustLang);
 
 /**
  * Live transcript view that auto-scrolls as new messages stream in.
@@ -55,16 +101,19 @@ export function ConversationTranscript() {
               <li key={message.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+                    <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
                     {name}
                   </span>
-                  {showStatus
-                    ? isPendingStatus
-                      ? <PendingSpinner withLabel={false} />
-                      : (
-                          <span className="text-xs uppercase tracking-wide text-muted">{formattedStatus}</span>
-                        )
-                    : null}
+                  <div className="flex items-center gap-2">
+                    {showStatus
+                      ? isPendingStatus
+                        ? <PendingSpinner withLabel={false} />
+                        : (
+                            <span className="text-xs uppercase tracking-wide text-muted">{formattedStatus}</span>
+                          )
+                      : null}
+                    <CopyButton content={message.content ?? ''} disabled={isPendingContent} />
+                  </div>
                 </div>
                 <MarkdownMessage content={message.content} isPending={isPendingContent} />
               </li>
@@ -96,21 +145,38 @@ type MarkdownCodeProps = HTMLAttributes<HTMLElement> & {
   children?: ReactNode;
 };
 
-const MarkdownCodeBlock = ({ inline, className, children, ...props }: MarkdownCodeProps) => {
-  const baseClass = clsx('font-mono text-xs', className);
-  if (!inline) {
+const MarkdownCode = ({ inline, className, children, ...props }: MarkdownCodeProps) => {
+  const codeText = useMemo(() => extractCodeText(children), [children]);
+  const language = useMemo(() => {
+    if (!className) {
+      return undefined;
+    }
+    const match = className.match(/language-([\w-]+)/);
+    return match?.[1];
+  }, [className]);
+
+  if (inline) {
     return (
-      <pre className="overflow-x-auto rounded-xl bg-border/20 p-4">
-        <code className={baseClass} {...props}>
-          {children}
-        </code>
-      </pre>
+      <code className={clsx('rounded-md bg-border/30 px-1.5 py-0.5 font-mono text-xs', className)} {...props}>
+        {children}
+      </code>
     );
   }
+
   return (
-    <code className={clsx('rounded-md bg-border/30 px-1.5 py-0.5', baseClass)} {...props}>
-      {children}
-    </code>
+    <div className="relative">
+      <SyntaxHighlighter
+        language={language ?? 'text'}
+        style={PRISM_SYNTAX_THEME}
+        customStyle={CODE_BLOCK_STYLE}
+        wrapLongLines
+        PreTag="pre"
+        codeTagProps={{ className: 'font-mono text-xs' }}
+      >
+        {codeText}
+      </SyntaxHighlighter>
+      {codeText ? <CopyCodeButton content={codeText} /> : null}
+    </div>
   );
 };
 
@@ -125,7 +191,7 @@ const MARKDOWN_COMPONENTS: Components = {
       {children}
     </a>
   ),
-  code: MarkdownCodeBlock,
+  code: MarkdownCode,
   img: ({ alt, src }) => {
     if (!src) {
       return null;
@@ -152,6 +218,150 @@ const MARKDOWN_COMPONENTS: Components = {
     );
   },
 };
+
+function CopyButton({ content, disabled }: { content: string; disabled: boolean }) {
+  const handleCopy = async () => {
+    if (!content || disabled) {
+      return;
+    }
+
+    const text = content;
+    const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+
+    if (!clipboard?.writeText) {
+      showToast({
+        variant: 'warning',
+        description: 'Clipboard access is unavailable. Please copy the message manually.',
+        durationMs: 5000,
+      });
+      return;
+    }
+
+    try {
+      await clipboard.writeText(text);
+      showToast({ variant: 'success', description: 'Message copied to clipboard.' });
+    } catch (error) {
+      const details = error instanceof Error ? ` ${error.message}` : '';
+      showToast({
+        variant: 'danger',
+        description: `Unable to copy the message.${details ? ` (${details})` : ''}`,
+        durationMs: 5000,
+      });
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40"
+      aria-label={disabled ? 'Message not ready to copy yet' : 'Copy message to clipboard'}
+      title={disabled ? 'Message not ready to copy yet' : 'Copy message to clipboard'}
+      onClick={handleCopy}
+      disabled={disabled}
+    >
+      <CopyIcon className="size-4" />
+    </button>
+  );
+}
+
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      <rect x="9" y="9" width="10" height="12" rx="2" ry="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h8" />
+    </svg>
+  );
+}
+
+function CopyCodeButton({ content }: { content: string }) {
+  if (!content) {
+    return null;
+  }
+  return (
+    <div className="absolute right-3 top-3">
+      <CopyButton content={content} disabled={false} />
+    </div>
+  );
+}
+
+type PrismTheme = Record<string, CSSProperties>;
+
+const CODE_BLOCK_STYLE: CSSProperties = {
+  background: 'hsl(var(--color-border) / 0.18)',
+  borderRadius: '1rem',
+  margin: 0,
+  padding: '1rem',
+  overflowX: 'auto',
+};
+
+const PRISM_SYNTAX_THEME: PrismTheme = {
+  'code[class*="language-"]': {
+    color: 'hsl(var(--color-foreground))',
+    fontFamily:
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    fontSize: '0.85rem',
+    textShadow: 'none',
+  },
+  'pre[class*="language-"]': {
+    color: 'inherit',
+    margin: 0,
+    border: 'none',
+    background: 'transparent',
+    textShadow: 'none',
+  },
+  comment: { color: 'hsl(var(--color-muted))', fontStyle: 'italic' },
+  prolog: { color: 'hsl(var(--color-muted))' },
+  cdata: { color: 'hsl(var(--color-muted))' },
+  punctuation: { color: 'hsl(var(--color-foreground) / 0.9)' },
+  'attr-name': { color: '#f59e0b' },
+  'class-name': { color: '#facc15' },
+  boolean: { color: '#f97316' },
+  constant: { color: '#f97316' },
+  number: { color: '#f97316' },
+  keyword: { color: '#a855f7', fontWeight: 600 },
+  operator: { color: '#c084fc' },
+  property: { color: '#38bdf8' },
+  tag: { color: '#fb7185' },
+  symbol: { color: '#fb7185' },
+  deleted: { color: '#fb7185' },
+  selector: { color: '#34d399' },
+  string: { color: '#4ade80' },
+  char: { color: '#4ade80' },
+  builtin: { color: '#2dd4bf' },
+  inserted: { color: '#2dd4bf' },
+  regex: { color: '#f97316' },
+  important: { color: '#f472b6' },
+  variable: { color: '#38bdf8' },
+  function: { color: '#0ea5e9' },
+  url: { color: '#22d3ee' },
+};
+
+function extractCodeText(children: ReactNode): string {
+  if (typeof children === 'string') {
+    return children;
+  }
+  if (Array.isArray(children)) {
+    return children.map((child) => extractCodeText(child)).join('');
+  }
+  if (isValidElement(children)) {
+    const element = children as ReactElement<{ children?: ReactNode }>;
+    return extractCodeText(element.props.children);
+  }
+  if (typeof children === 'number') {
+    return children.toString();
+  }
+  return '';
+}
 
 function PendingSpinner({ withLabel = true }: { withLabel?: boolean }) {
   return (

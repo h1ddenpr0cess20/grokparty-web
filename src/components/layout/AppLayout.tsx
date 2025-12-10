@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { ApiKeyMenu } from '@/components/layout/ApiKeyMenu';
+import { McpServersMenu } from '@/components/layout/McpServersMenu';
 import { useSessionStore } from '@/state/sessionStore';
 
 const NAV_ITEMS = [
@@ -62,6 +63,7 @@ export function AppLayout() {
           </nav>
           <div className="flex items-center gap-3">
             <StatusPill status={status} />
+            <McpServersMenu />
             <ApiKeyMenu />
             <ThemeToggle />
           </div>

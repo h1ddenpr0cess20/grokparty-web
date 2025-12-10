@@ -53,6 +53,12 @@ This document explains the limits of responsibility for the GrokParty chatbot pr
 - **Intellectual property**: Outputs may resemble copyrighted or proprietary content. Ensure you have rights before using or distributing.
 - **Bias/offensive content**: Models may produce biased or harmful content. Apply your standards and filters.
 - **Tool calling and automation**: If enabled, tools may act on model instructions. Validate inputs/outputs and accept responsibility for results.
+- **Model Context Protocol (MCP) servers and tools**:
+  - When you add MCP servers (e.g., via the App’s header menu) you are granting the connected models potential access to each server’s advertised toolset.
+  - Some MCP tools can trigger network calls, file writes, or other side effects. Vet every server and tool before granting participants access; remove any server you do not fully trust.
+  - Configure per-character tool access carefully. A single misconfigured character could expose sensitive data, spam services, or run unintended automations.
+  - If you use the optional `allowed_tool_names` filter, double-check that it only includes safe, intended tool IDs. An empty list grants access to every tool announced by that server.
+  - MCP servers are third-party systems; the App author(s) do not review, monitor, or endorse them. You bear the full risk of any misuse, breach, or cost associated with enabling them.
 
 ## 9) Third‑Party Terms and Data Handling
 - Your use of any provider is subject to that provider’s terms, policies, and rate limits.

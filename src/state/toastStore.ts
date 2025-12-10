@@ -10,9 +10,11 @@ export interface ToastMessage {
   durationMs: number;
 }
 
+type ToastPayload = Omit<ToastMessage, 'id' | 'durationMs'> & { id?: string; durationMs?: number };
+
 interface ToastState {
   toasts: ToastMessage[];
-  push: (toast: Omit<ToastMessage, 'id'> & { id?: string }) => string;
+  push: (toast: ToastPayload) => string;
   dismiss: (id: string) => void;
   clear: () => void;
 }
@@ -46,7 +48,9 @@ export const useToastStore = create<ToastState>((set) => ({
 /**
  * Convenience helper to display a toast without subscribing to the store.
  */
-export function showToast(toast: Omit<ToastMessage, 'id'>) {
+export type ToastInput = ToastPayload;
+
+export function showToast(toast: ToastInput) {
   return useToastStore.getState().push(toast);
 }
 
