@@ -6,6 +6,8 @@ import {
   useSessionStore,
   DEFAULT_PARTICIPANT_TEMPERATURE,
   DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+  DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER,
+  DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL,
   SESSION_STORAGE_KEY,
 } from './sessionStore';
 
@@ -118,6 +120,8 @@ function createParticipantInput(id: string, persona: string, model: string) {
     model,
     temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
     enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+    enableCodeInterpreter: DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER,
+    enableXSearchTool: DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL,
     mcpAccess: [],
   };
 }

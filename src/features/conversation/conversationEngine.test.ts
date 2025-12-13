@@ -34,4 +34,14 @@ describe('stripCitationArtifacts', () => {
     const input = '[3]: https://source\nStill here';
     expect(stripCitationArtifacts(input)).toBe('Still here');
   });
+
+  it('preserves indentation inside fenced code blocks', () => {
+    const input = '```js\nfunction test() {\n  console.log("ok");\n}\n```';
+    expect(stripCitationArtifacts(input)).toBe(input);
+  });
+
+  it('preserves inline code spacing', () => {
+    const input = 'Use `npm  run build` after setup [1]';
+    expect(stripCitationArtifacts(input)).toBe('Use `npm  run build` after setup');
+  });
 });

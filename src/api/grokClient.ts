@@ -44,7 +44,17 @@ export interface GrokMcpTool {
   allowed_tool_names?: string[];
 }
 
-export type GrokTool = GrokMcpTool;
+export interface GrokCodeInterpreterTool {
+  type: 'code_interpreter';
+}
+
+export interface GrokXSearchTool {
+  type: 'x_search';
+  enable_image_understanding?: boolean;
+  enable_video_understanding?: boolean;
+}
+
+export type GrokTool = GrokMcpTool | GrokCodeInterpreterTool | GrokXSearchTool;
 
 /**
  * Single message in a chat transcript sent to/received from the Grok API.
@@ -105,12 +115,16 @@ const grokModelsResponseSchema = z.object({
     .optional(),
 });
 
-const DEFAULT_RESPONSES_TOOLS = [
-  { type: 'web_search' as const },
-  { type: 'x_search' as const },
-];
+type ResponsesToolType = 'web_search' | 'x_search';
 
-type ResponsesToolType = (typeof DEFAULT_RESPONSES_TOOLS)[number]['type'];
+type DefaultResponsesTool =
+  | { type: 'web_search'; enable_image_understanding?: boolean }
+  | { type: 'x_search' };
+
+const DEFAULT_RESPONSES_TOOLS: DefaultResponsesTool[] = [
+  { type: 'web_search', enable_image_understanding: true },
+  { type: 'x_search' },
+];
 
 interface ResponsesApiInputItem {
   role: GrokRole;
@@ -126,7 +140,7 @@ interface ResponsesApiPayload {
   stream?: boolean;
 }
 
-type ResponsesApiTool = { type: ResponsesToolType } | GrokMcpTool;
+type ResponsesApiTool = DefaultResponsesTool | GrokTool;
 
 interface ResponsesSearchParameters {
   mode?: 'off' | 'auto' | 'on';
@@ -393,9 +407,13 @@ function buildResponsesPayload(request: GrokChatRequest, stream: boolean): Respo
   }
 
   const tools: ResponsesApiTool[] = [];
+  const hasCustomXSearchTool = request.tools?.some((tool) => tool.type === 'x_search');
 
   if (!request.disableSearch) {
-    tools.push(...DEFAULT_RESPONSES_TOOLS);
+    const defaults = hasCustomXSearchTool
+      ? DEFAULT_RESPONSES_TOOLS.filter((tool) => tool.type !== 'x_search')
+      : DEFAULT_RESPONSES_TOOLS;
+    tools.push(...defaults);
     // Context7 xAI docs: return_citations defaults to true; disable to keep transcript clean.
     payload.search_parameters = {
       return_citations: false,

@@ -65,6 +65,8 @@ describe('buildTranscriptExport', () => {
         color: '#fff',
         temperature: 0.75,
         enableSearch: true,
+        enableCodeInterpreter: true,
+        enableXSearchTool: true,
         mcpAccess: [
           { serverId: 'srv-1', allowedToolNames: ['search_docs'] },
         ],
@@ -77,6 +79,8 @@ describe('buildTranscriptExport', () => {
         color: '#000',
         temperature: 0.65,
         enableSearch: false,
+        enableCodeInterpreter: false,
+        enableXSearchTool: false,
         mcpAccess: [
           { serverId: 'srv-2', allowedToolNames: [] },
         ],
@@ -129,7 +133,7 @@ describe('buildTranscriptExport', () => {
     expect(result.extension).toBe('md');
     expect(result.content).toContain('# GrokParty Transcript');
     expect(result.content).toContain('**Conversation Type:** panel');
-    expect(result.content).toContain('1. **Ada** – grok-4 (Temp: 0.75, Search: Enabled, MCP: DeepWiki (tools: search_docs))');
+    expect(result.content).toContain('1. **Ada** – grok-4 (Temp: 0.75, Search: Enabled, Code Interpreter: Enabled, X Search Tool: Enabled, MCP: DeepWiki (tools: search_docs))');
     expect(result.content).toContain('## MCP Servers');
     expect(result.content).toContain('1. **DeepWiki** – https://mcp.deepwiki.com/mcp');
     expect(result.content).toContain('**Ada:** Hello world');
@@ -148,7 +152,7 @@ describe('buildTranscriptExport', () => {
     expect(result.extension).toBe('txt');
     expect(result.content).toContain('GrokParty Transcript');
     expect(result.content).toContain('Conversation Type: panel');
-    expect(result.content).toContain('1. Ada – grok-4 (Temp: 0.75, Search: Enabled, MCP: DeepWiki (tools: search_docs))');
+    expect(result.content).toContain('1. Ada – grok-4 (Temp: 0.75, Search: Enabled, Code Interpreter: Enabled, X Search Tool: Enabled, MCP: DeepWiki (tools: search_docs))');
     expect(result.content).toContain('MCP Servers:');
     expect(result.content).toContain('Ada: Hello world');
   });
@@ -178,7 +182,8 @@ describe('buildTranscriptExport', () => {
     expect(result.content).toContain('<strong>Conversation Type:</strong> panel');
     expect(result.content).toContain('<h2>Participants</h2>');
     expect(result.content).toContain('<h2>MCP servers</h2>');
-    expect(result.content).toContain('<strong>Ada:</strong> Hello world');
+    expect(result.content).toContain('<p class="message-speaker"><strong>Ada</strong></p>');
+    expect(result.content).toContain('<p class="message-content">Hello world</p>');
     expect(result.content).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
   });
 });

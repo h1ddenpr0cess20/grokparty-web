@@ -27,7 +27,7 @@ import yamlLang from 'react-syntax-highlighter/dist/esm/languages/prism/yaml';
 import goLang from 'react-syntax-highlighter/dist/esm/languages/prism/go';
 import rustLang from 'react-syntax-highlighter/dist/esm/languages/prism/rust';
 import { useConversationMessages, useParticipantsMap } from '@/state/sessionSelectors';
-import { useSessionStore } from '@/state/sessionStore';
+import { useSessionStore, type ConversationMessage } from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
 SyntaxHighlighter.registerLanguage('tsx', tsxLang);
@@ -115,7 +115,7 @@ export function ConversationTranscript() {
                     <CopyButton content={message.content ?? ''} disabled={isPendingContent} />
                   </div>
                 </div>
-                <MarkdownMessage content={message.content} isPending={isPendingContent} />
+                <MarkdownMessage content={message.content} status={message.status} />
               </li>
             );
           })
@@ -125,7 +125,17 @@ export function ConversationTranscript() {
   );
 }
 
-function MarkdownMessage({ content, isPending }: { content: string; isPending: boolean }) {
+function MarkdownMessage({
+  content,
+  status,
+}: {
+  content: string;
+  status: ConversationMessage['status'];
+}) {
+  const isPending = !content;
+  const highlightEnabled = status === 'completed';
+  const components = useMemo(() => createMarkdownComponents({ highlightEnabled }), [highlightEnabled]);
+
   return (
     <div
       className={clsx(
@@ -133,7 +143,7 @@ function MarkdownMessage({ content, isPending }: { content: string; isPending: b
         isPending ? 'text-muted' : 'text-foreground',
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content || ''}
       </ReactMarkdown>
     </div>
@@ -143,9 +153,10 @@ function MarkdownMessage({ content, isPending }: { content: string; isPending: b
 type MarkdownCodeProps = HTMLAttributes<HTMLElement> & {
   inline?: boolean;
   children?: ReactNode;
+  highlightEnabled: boolean;
 };
 
-const MarkdownCode = ({ inline, className, children, ...props }: MarkdownCodeProps) => {
+const MarkdownCode = ({ inline, className, children, highlightEnabled, ...props }: MarkdownCodeProps) => {
   const codeText = useMemo(() => extractCodeText(children), [children]);
   const language = useMemo(() => {
     if (!className) {
@@ -160,6 +171,16 @@ const MarkdownCode = ({ inline, className, children, ...props }: MarkdownCodePro
       <code className={clsx('rounded-md bg-border/30 px-1.5 py-0.5 font-mono text-xs', className)} {...props}>
         {children}
       </code>
+    );
+  }
+
+  if (!highlightEnabled) {
+    return (
+      <pre style={CODE_BLOCK_STYLE}>
+        <code className="font-mono text-xs whitespace-pre-wrap" {...props}>
+          {codeText}
+        </code>
+      </pre>
     );
   }
 
@@ -180,44 +201,46 @@ const MarkdownCode = ({ inline, className, children, ...props }: MarkdownCodePro
   );
 };
 
-const MARKDOWN_COMPONENTS: Components = {
-  a: ({ children, ...props }) => (
-    <a
-      {...props}
-      className="text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
-      target="_blank"
-      rel="noreferrer"
-    >
-      {children}
-    </a>
-  ),
-  code: MarkdownCode,
-  img: ({ alt, src }) => {
-    if (!src) {
-      return null;
-    }
+function createMarkdownComponents({ highlightEnabled }: { highlightEnabled: boolean }): Components {
+  return {
+    a: ({ children, ...props }) => (
+      <a
+        {...props}
+        className="text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+        target="_blank"
+        rel="noreferrer"
+      >
+        {children}
+      </a>
+    ),
+    code: (props) => <MarkdownCode {...props} highlightEnabled={highlightEnabled} />,
+    img: ({ alt, src }) => {
+      if (!src) {
+        return null;
+      }
 
-    const label = alt?.trim() ?? '';
-    const isCitation = label ? /^\d+$/.test(label) : false;
+      const label = alt?.trim() ?? '';
+      const isCitation = label ? /^\d+$/.test(label) : false;
 
-    if (isCitation) {
+      if (isCitation) {
+        return (
+          <a
+            href={src}
+            target="_blank"
+            rel="noreferrer"
+            className="citation-link"
+          >
+            [{label}]
+          </a>
+        );
+      }
+
       return (
-        <a
-          href={src}
-          target="_blank"
-          rel="noreferrer"
-          className="citation-link"
-        >
-          [{label}]
-        </a>
+        <img src={src} alt={alt ?? ''} className="max-h-80 w-full rounded-xl object-contain" />
       );
-    }
-
-    return (
-      <img src={src} alt={alt ?? ''} className="max-h-80 w-full rounded-xl object-contain" />
-    );
-  },
-};
+    },
+  };
+}
 
 function CopyButton({ content, disabled }: { content: string; disabled: boolean }) {
   const handleCopy = async () => {
