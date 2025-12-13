@@ -26,6 +26,8 @@ import {
   type McpServerConfig,
   DEFAULT_PARTICIPANT_TEMPERATURE,
   DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+  DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER,
+  DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL,
 } from '@/state/sessionStore';
 import { showToast } from '@/state/toastStore';
 
@@ -35,6 +37,8 @@ type ParticipantFormValues = {
   model: string;
   temperature: number;
   enableSearch: boolean;
+  enableCodeInterpreter: boolean;
+  enableXSearchTool: boolean;
   mcpAccess: Array<{
     serverId: string;
     allowedToolNames: string[];
@@ -57,6 +61,8 @@ const PARTICIPANT_SCHEMA: z.ZodType<ParticipantFormValues> = z.object({
   model: z.string().min(1, 'Model selection is required'),
   temperature: z.number().min(0).max(2),
   enableSearch: z.boolean(),
+  enableCodeInterpreter: z.boolean(),
+  enableXSearchTool: z.boolean(),
   mcpAccess: z
     .array(
       z.object({
@@ -176,6 +182,8 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
         model: participant.model,
         temperature: participant.temperature,
         enableSearch: participant.enableSearch,
+        enableCodeInterpreter: participant.enableCodeInterpreter,
+        enableXSearchTool: participant.enableXSearchTool,
         mcpAccess: normalizedAccess,
       };
     });
@@ -496,6 +504,38 @@ function ParticipantsStep({
                           </FormField>
                         )}
                       />
+                      <Controller
+                        control={control}
+                        name={`participants.${index}.enableXSearchTool` as const}
+                        render={({ field }) => (
+                          <FormField
+                            label="X search tool"
+                            description="Allow this character to run X search with image and video understanding."
+                          >
+                            <Switch
+                              checked={field.value}
+                              onClick={() => field.onChange(!field.value)}
+                              label={field.value ? 'Enabled' : 'Disabled'}
+                            />
+                          </FormField>
+                        )}
+                      />
+                      <Controller
+                        control={control}
+                        name={`participants.${index}.enableCodeInterpreter` as const}
+                        render={({ field }) => (
+                          <FormField
+                            label="Code interpreter"
+                            description="Allow this character to run code in a sandboxed tool."
+                          >
+                            <Switch
+                              checked={field.value}
+                              onClick={() => field.onChange(!field.value)}
+                              label={field.value ? 'Enabled' : 'Disabled'}
+                            />
+                          </FormField>
+                        )}
+                      />
                       <div className="space-y-2">
                         <p className="text-sm font-semibold text-foreground">MCP access</p>
                         {availableServers.length ? (
@@ -587,6 +627,14 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
         typeof partialParticipant.enableSearch === 'boolean'
           ? partialParticipant.enableSearch
           : legacyEnableSearch,
+      enableCodeInterpreter:
+        typeof partialParticipant.enableCodeInterpreter === 'boolean'
+          ? partialParticipant.enableCodeInterpreter
+          : DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER,
+      enableXSearchTool:
+        typeof partialParticipant.enableXSearchTool === 'boolean'
+          ? partialParticipant.enableXSearchTool
+          : DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL,
       mcpAccess: Array.isArray(partialParticipant.mcpAccess)
         ? partialParticipant.mcpAccess.map((access) => ({
             serverId: access.serverId,
@@ -620,6 +668,8 @@ function createEmptyParticipant(defaultModel: string | undefined): WizardValues[
     model: defaultModel ?? 'grok-4',
     temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
     enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+    enableCodeInterpreter: DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER,
+    enableXSearchTool: DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL,
     mcpAccess: [],
   };
 }

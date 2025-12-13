@@ -99,6 +99,8 @@ function formatAsMarkdown(...[config, messages, participants, exportedAt]: Trans
         const extras = [
           `Temp: ${formatTemperature(participant.temperature)}`,
           `Search: ${formatBooleanDisplay(participant.enableSearch)}`,
+          `Code Interpreter: ${formatBooleanDisplay(participant.enableCodeInterpreter)}`,
+          `X Search Tool: ${formatBooleanDisplay(participant.enableXSearchTool)}`,
         ];
         const mcpSummary = describeParticipantMcpAccess(participant, config.mcpServers);
         if (mcpSummary) {
@@ -154,6 +156,8 @@ function formatAsText(...[config, messages, participants, exportedAt]: Transcrip
         const extras = [
           `Temp: ${formatTemperature(participant.temperature)}`,
           `Search: ${formatBooleanDisplay(participant.enableSearch)}`,
+          `Code Interpreter: ${formatBooleanDisplay(participant.enableCodeInterpreter)}`,
+          `X Search Tool: ${formatBooleanDisplay(participant.enableXSearchTool)}`,
         ];
         const mcpSummary = describeParticipantMcpAccess(participant, config.mcpServers);
         if (mcpSummary) {
@@ -212,6 +216,8 @@ function formatAsHtml(...[config, messages, participants, exportedAt]: Transcrip
                 const extras = [
                   `Temp: ${formatTemperature(participant.temperature)}`,
                   `Search: ${formatBooleanDisplay(participant.enableSearch)}`,
+                  `Code Interpreter: ${formatBooleanDisplay(participant.enableCodeInterpreter)}`,
+                  `X Search Tool: ${formatBooleanDisplay(participant.enableXSearchTool)}`,
                 ];
                 const mcpSummary = describeParticipantMcpAccess(participant, config.mcpServers);
                 if (mcpSummary) {

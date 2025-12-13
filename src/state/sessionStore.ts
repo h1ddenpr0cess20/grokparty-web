@@ -26,6 +26,8 @@ export interface Participant {
   color: string;
   temperature: number;
   enableSearch: boolean;
+  enableCodeInterpreter: boolean;
+  enableXSearchTool: boolean;
   mcpAccess: ParticipantMcpAccess[];
 }
 
@@ -49,6 +51,8 @@ export interface ParticipantInput {
   model: string;
   temperature: number;
   enableSearch: boolean;
+  enableCodeInterpreter: boolean;
+  enableXSearchTool: boolean;
   mcpAccess: ParticipantMcpAccess[];
 }
 
@@ -133,6 +137,8 @@ export const PARTICIPANT_COLORS = [
 
 export const DEFAULT_PARTICIPANT_TEMPERATURE = 0.8;
 export const DEFAULT_PARTICIPANT_ENABLE_SEARCH = false;
+export const DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER = true;
+export const DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL = false;
 
 const createDefaultParticipant = (index: number): Participant =>
   formatParticipant(
@@ -142,6 +148,8 @@ const createDefaultParticipant = (index: number): Participant =>
       model: DEFAULT_CONFIG.decisionModel,
       temperature: DEFAULT_PARTICIPANT_TEMPERATURE,
       enableSearch: DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+      enableCodeInterpreter: DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER,
+      enableXSearchTool: DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL,
       mcpAccess: [],
     },
     index,
@@ -159,6 +167,8 @@ function withDefaultParticipants(config: ConversationConfig): ConversationConfig
       color: participant.color ?? PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length],
       temperature: normalizeTemperature(partialParticipant.temperature),
       enableSearch: normalizeEnableSearch(partialParticipant.enableSearch, legacyEnableSearch),
+      enableCodeInterpreter: normalizeEnableCodeInterpreter(partialParticipant.enableCodeInterpreter),
+      enableXSearchTool: normalizeEnableXSearchTool(partialParticipant.enableXSearchTool),
       mcpAccess: normalizeParticipantMcpAccess(partialParticipant.mcpAccess, allowedServerIds),
     };
   });
@@ -220,6 +230,8 @@ export const useSessionStore = create<ConversationSessionState>()(
             model: existing.model,
             temperature: existing.temperature,
             enableSearch: existing.enableSearch,
+            enableCodeInterpreter: existing.enableCodeInterpreter,
+            enableXSearchTool: existing.enableXSearchTool,
           }));
 
           const index = baseInputs.findIndex((entry) => entry.id === participant.id);
@@ -249,6 +261,8 @@ export const useSessionStore = create<ConversationSessionState>()(
               model: participant.model,
               temperature: participant.temperature,
               enableSearch: participant.enableSearch,
+              enableCodeInterpreter: participant.enableCodeInterpreter,
+              enableXSearchTool: participant.enableXSearchTool,
             }));
 
           const serverIds = new Set(state.config.mcpServers.map((server) => server.id));
@@ -370,6 +384,8 @@ function formatParticipant(
     color: PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length],
     temperature: normalizeTemperature(input.temperature),
     enableSearch: normalizeEnableSearch(input.enableSearch),
+    enableCodeInterpreter: normalizeEnableCodeInterpreter(input.enableCodeInterpreter),
+    enableXSearchTool: normalizeEnableXSearchTool(input.enableXSearchTool),
     mcpAccess: normalizeParticipantMcpAccess(input.mcpAccess, allowedServerIds),
   };
 }
@@ -418,6 +434,20 @@ function normalizeTemperature(value: unknown): number {
 }
 
 function normalizeEnableSearch(value: unknown, fallback = DEFAULT_PARTICIPANT_ENABLE_SEARCH): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  return fallback;
+}
+
+function normalizeEnableCodeInterpreter(value: unknown, fallback = DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER): boolean {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  return fallback;
+}
+
+function normalizeEnableXSearchTool(value: unknown, fallback = DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL): boolean {
   if (typeof value === 'boolean') {
     return value;
   }

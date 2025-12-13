@@ -409,24 +409,35 @@ export class ConversationEngine {
 }
 
 function buildToolsForParticipant(participant: Participant, config: ConversationConfig): GrokTool[] {
-  if (!participant.mcpAccess?.length || !config.mcpServers?.length) {
-    return [];
-  }
-  const serverMap = new Map(config.mcpServers.map((server) => [server.id, server]));
   const tools: GrokTool[] = [];
 
-  participant.mcpAccess.forEach((access) => {
-    const server = serverMap.get(access.serverId);
-    if (!server) {
-      return;
-    }
+  if (participant.enableCodeInterpreter) {
+    tools.push({ type: 'code_interpreter' });
+  }
+
+  if (participant.enableXSearchTool) {
     tools.push({
-      type: 'mcp',
-      server_url: server.url,
-      server_label: server.label,
-      allowed_tool_names: access.allowedToolNames?.length ? access.allowedToolNames : undefined,
+      type: 'x_search',
+      enable_image_understanding: true,
+      enable_video_understanding: true,
     });
-  });
+  }
+
+  if (participant.mcpAccess?.length && config.mcpServers?.length) {
+    const serverMap = new Map(config.mcpServers.map((server) => [server.id, server]));
+    participant.mcpAccess.forEach((access) => {
+      const server = serverMap.get(access.serverId);
+      if (!server) {
+        return;
+      }
+      tools.push({
+        type: 'mcp',
+        server_url: server.url,
+        server_label: server.label,
+        allowed_tool_names: access.allowedToolNames?.length ? access.allowedToolNames : undefined,
+      });
+    });
+  }
 
   return tools;
 }
@@ -547,14 +558,79 @@ export function stripCitationArtifacts(value: string): string {
     return '';
   }
 
+  let result = '';
+  let buffer = '';
+  let index = 0;
+  let inFence = false;
+  let inInline = false;
+
+  const flushBuffer = () => {
+    if (!buffer) {
+      return;
+    }
+    result += cleanupNonCodeSegment(buffer);
+    buffer = '';
+  };
+
+  while (index < value.length) {
+    if (!inInline && value.startsWith('```', index)) {
+      if (inFence) {
+        result += '```';
+        index += 3;
+        inFence = false;
+        continue;
+      }
+      flushBuffer();
+      inFence = true;
+      result += '```';
+      index += 3;
+      continue;
+    }
+
+    const char = value[index];
+
+    if (!inFence) {
+      if (char === '`') {
+        if (inInline) {
+          result += '`';
+          index += 1;
+          inInline = false;
+          continue;
+        }
+        flushBuffer();
+        inInline = true;
+        result += '`';
+        index += 1;
+        continue;
+      }
+
+      if (inInline) {
+        result += char;
+        index += 1;
+        continue;
+      }
+
+      buffer += char;
+      index += 1;
+      continue;
+    }
+
+    result += char;
+    index += 1;
+  }
+
+  flushBuffer();
+  return result.replace(/[ \t]+$/g, '');
+}
+
+function cleanupNonCodeSegment(value: string): string {
   let next = value
     .replace(CITATION_DEFINITION_REGEX, '')
     .replace(CITATION_IMAGE_REGEX, '')
     .replace(CITATION_WITH_URL_REGEX, '')
     .replace(CITATION_STANDALONE_REGEX, '');
-
   next = next.replace(/[ \t]{2,}/g, ' ');
-  next = next.replace(/\s+\n/g, '\n');
+  next = next.replace(/[ \t]+\n/g, '\n');
   next = next.replace(/\n{3,}/g, '\n\n');
   return next;
 }
