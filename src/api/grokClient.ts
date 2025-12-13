@@ -115,8 +115,6 @@ const grokModelsResponseSchema = z.object({
     .optional(),
 });
 
-type ResponsesToolType = 'web_search' | 'x_search';
-
 type DefaultResponsesTool =
   | { type: 'web_search'; enable_image_understanding?: boolean }
   | { type: 'x_search' };
