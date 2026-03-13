@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GrokClient, FALLBACK_MODELS, type GrokChatMessage } from './grokClient';
+import { GrokClient, type GrokChatMessage } from './grokClient';
 
 describe('GrokClient', () => {
   it('parses model list responses', async () => {
@@ -63,7 +63,43 @@ describe('GrokClient', () => {
     ]);
   });
 
-  it('returns fallbacks when only grok-2 models are available', async () => {
+  it('filters out grok-imagine models from the API response', async () => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            id: 'grok-4',
+            name: 'Grok 4',
+          },
+          {
+            id: 'grok-imagine-image',
+            name: 'Grok Imagine Image',
+          },
+          {
+            id: 'grok-imagine-image-pro',
+            name: 'Grok Imagine Image Pro',
+          },
+          {
+            id: 'grok-imagine-video',
+            name: 'Grok Imagine Video',
+          },
+        ],
+      }),
+    })) as unknown as typeof global.fetch;
+
+    const client = new GrokClient({ fetchImpl: fetch });
+    const models = await client.listModels('sk-test');
+
+    expect(models).toEqual([
+      {
+        id: 'grok-4',
+        name: 'Grok 4',
+      },
+    ]);
+  });
+
+  it('throws when no compatible models remain after filtering', async () => {
     const fetch = vi.fn(async () => ({
       ok: true,
       json: async () => ({
@@ -73,35 +109,26 @@ describe('GrokClient', () => {
             name: 'Grok 2',
           },
           {
-            id: 'grok-2-mini',
-            name: 'Grok 2 Mini',
+            id: 'grok-imagine-image',
+            name: 'Grok Imagine Image',
           },
         ],
       }),
     })) as unknown as typeof global.fetch;
 
     const client = new GrokClient({ fetchImpl: fetch });
-    const models = await client.listModels('sk-test');
-
-    expect(models).toEqual(FALLBACK_MODELS);
+    await expect(client.listModels('sk-test')).rejects.toThrow('No compatible models available');
   });
 
-  it('falls back to default models on error', async () => {
+  it('throws on HTTP error', async () => {
     const fetch = vi.fn(async () => ({
       ok: false,
       status: 401,
       text: async () => 'unauthorized',
     })) as unknown as typeof global.fetch;
 
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
     const client = new GrokClient({ fetchImpl: fetch });
-    const models = await client.listModels('sk-test');
-
-    expect(models).toEqual(FALLBACK_MODELS);
-    expect(warnSpy).toHaveBeenCalled();
-
-    warnSpy.mockRestore();
+    await expect(client.listModels('sk-test')).rejects.toThrow('Grok API request failed (401)');
   });
 
   it('falls back to non-streaming completion when streaming is unavailable', async () => {
@@ -189,10 +216,16 @@ describe('GrokClient', () => {
     expect(response.choices[0]?.finishReason).toBe('stop');
   });
 
-  it('disables citations in search parameters when search is enabled', async () => {
-    const fetch = vi.fn(async (_url, init?: RequestInit) => {
+  it('does not send search_parameters when search is enabled', async () => {
+    const fetch = vi.fn(async (_url: string, init?: RequestInit) => {
       const payload = JSON.parse((init?.body as string) ?? '{}');
-      expect(payload.search_parameters).toEqual({ return_citations: false });
+      expect(payload.search_parameters).toBeUndefined();
+      expect(payload.tools).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'web_search' }),
+          expect.objectContaining({ type: 'x_search' }),
+        ]),
+      );
       return {
         ok: true,
         json: async () => ({
