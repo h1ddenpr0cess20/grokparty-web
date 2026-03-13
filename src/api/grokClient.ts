@@ -6,16 +6,6 @@ import { z } from 'zod';
 
 const DEFAULT_BASE_URL = import.meta.env.VITE_GROK_API_BASE ?? 'https://api.x.ai/v1';
 
-/**
- * Static list used when the API is unreachable or returns an unexpected payload.
- */
-export const FALLBACK_MODELS: GrokModel[] = [
-  { id: 'grok-4', name: 'Grok 4' },
-  { id: 'grok-3-mini', name: 'Grok 3 Mini' },
-  { id: 'grok-3-fast', name: 'Grok 3 Fast' },
-  { id: 'grok-3-mini-fast', name: 'Grok 3 Mini Fast' },
-  { id: 'grok-3', name: 'Grok 3' },
-];
 
 /**
  * Options for constructing a GrokClient instance.
@@ -41,7 +31,10 @@ export interface GrokMcpTool {
   type: 'mcp';
   server_url: string;
   server_label: string;
+  server_description?: string;
   allowed_tool_names?: string[];
+  authorization?: string;
+  extra_headers?: Record<string, string>;
 }
 
 export interface GrokCodeInterpreterTool {
@@ -50,6 +43,10 @@ export interface GrokCodeInterpreterTool {
 
 export interface GrokXSearchTool {
   type: 'x_search';
+  allowed_x_handles?: string[];
+  excluded_x_handles?: string[];
+  from_date?: string;
+  to_date?: string;
   enable_image_understanding?: boolean;
   enable_video_understanding?: boolean;
 }
@@ -115,8 +112,13 @@ const grokModelsResponseSchema = z.object({
     .optional(),
 });
 
+interface WebSearchFilters {
+  allowed_domains?: string[];
+  excluded_domains?: string[];
+}
+
 type DefaultResponsesTool =
-  | { type: 'web_search'; enable_image_understanding?: boolean }
+  | { type: 'web_search'; filters?: WebSearchFilters; enable_image_understanding?: boolean }
   | { type: 'x_search' };
 
 const DEFAULT_RESPONSES_TOOLS: DefaultResponsesTool[] = [
@@ -134,19 +136,10 @@ interface ResponsesApiPayload {
   input: ResponsesApiInputItem[];
   temperature?: number;
   tools?: ResponsesApiTool[];
-  search_parameters?: ResponsesSearchParameters;
   stream?: boolean;
 }
 
 type ResponsesApiTool = DefaultResponsesTool | GrokTool;
-
-interface ResponsesSearchParameters {
-  mode?: 'off' | 'auto' | 'on';
-  return_citations?: boolean;
-  sources?: unknown[];
-  from_date?: string;
-  to_date?: string;
-}
 
 interface ResponsesApiResponse {
   id: string;
@@ -202,38 +195,35 @@ export class GrokClient {
    * Falls back to a static list when the request fails or the payload is invalid.
    */
   async listModels(apiKey: string): Promise<GrokModel[]> {
-    try {
-      const response = await this.fetchImpl(`${this.baseUrl}/models`, {
-        headers: this.createHeaders(apiKey),
-      });
+    const response = await this.fetchImpl(`${this.baseUrl}/models`, {
+      headers: this.createHeaders(apiKey),
+    });
 
-      if (!response.ok) {
-        throw createHttpError(response.status, await response.text());
-      }
-
-      const payload = await response.json();
-      const parsed = grokModelsResponseSchema.safeParse(payload);
-
-      if (!parsed.success || !parsed.data.data) {
-        return FALLBACK_MODELS;
-      }
-
-      const filteredModels = parsed.data.data.filter((model) => !model.id.startsWith('grok-2'));
-
-      if (filteredModels.length === 0) {
-        return FALLBACK_MODELS;
-      }
-
-      return filteredModels.map((model) => ({
-        id: model.id,
-        name: model.name ?? model.id,
-        description: model.description,
-        maxTokens: model.max_tokens,
-      }));
-    } catch (error) {
-      console.warn('Failed to fetch Grok models, falling back to defaults:', error);
-      return FALLBACK_MODELS;
+    if (!response.ok) {
+      throw createHttpError(response.status, await response.text());
     }
+
+    const payload = await response.json();
+    const parsed = grokModelsResponseSchema.safeParse(payload);
+
+    if (!parsed.success || !parsed.data.data?.length) {
+      throw new Error('Unexpected model list response');
+    }
+
+    const filteredModels = parsed.data.data.filter(
+      (model) => !model.id.startsWith('grok-2') && !model.id.startsWith('grok-imagine'),
+    );
+
+    if (filteredModels.length === 0) {
+      throw new Error('No compatible models available');
+    }
+
+    return filteredModels.map((model) => ({
+      id: model.id,
+      name: model.name ?? model.id,
+      description: model.description,
+      maxTokens: model.max_tokens,
+    }));
   }
 
   /**
@@ -412,10 +402,6 @@ function buildResponsesPayload(request: GrokChatRequest, stream: boolean): Respo
       ? DEFAULT_RESPONSES_TOOLS.filter((tool) => tool.type !== 'x_search')
       : DEFAULT_RESPONSES_TOOLS;
     tools.push(...defaults);
-    // Context7 xAI docs: return_citations defaults to true; disable to keep transcript clean.
-    payload.search_parameters = {
-      return_citations: false,
-    };
   }
 
   if (request.tools?.length) {

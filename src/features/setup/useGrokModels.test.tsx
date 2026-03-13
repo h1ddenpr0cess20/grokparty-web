@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { GrokClientContext } from '@/api/grokClientContext';
-import { FALLBACK_MODELS, type GrokModel } from '@/api/grokClient';
+import type { GrokModel } from '@/api/grokClient';
 import { useGrokModels } from './useGrokModels';
 import { useSessionStore } from '@/state/sessionStore';
 import { createMockClient, resetSessionStore } from '@/test/testUtils';
@@ -12,7 +12,7 @@ describe('useGrokModels', () => {
     resetSessionStore();
   });
 
-  it('returns fallback models when no API key is set', async () => {
+  it('returns empty models when no API key is set', async () => {
     const listModels = vi.fn();
     const client = createMockClient({ listModels });
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -24,7 +24,7 @@ describe('useGrokModels', () => {
     const { result } = renderHook(() => useGrokModels(), { wrapper });
 
     expect(result.current.status).toBe('idle');
-    expect(result.current.models).toEqual(FALLBACK_MODELS);
+    expect(result.current.models).toEqual([]);
     expect(listModels).not.toHaveBeenCalled();
   });
 
@@ -56,7 +56,7 @@ describe('useGrokModels', () => {
     expect(listModels).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to defaults on fetch error and surfaces the error message', async () => {
+  it('sets error status on fetch failure and returns empty models', async () => {
     resetSessionStore();
     useSessionStore.getState().setApiKey('sk-test', { remember: false });
 
@@ -77,7 +77,7 @@ describe('useGrokModels', () => {
       expect(result.current.status).toBe('error');
     });
 
-    expect(result.current.models).toEqual(FALLBACK_MODELS);
+    expect(result.current.models).toEqual([]);
     expect(result.current.error).toBe('network down');
   });
 });
