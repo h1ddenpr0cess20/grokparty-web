@@ -31,19 +31,19 @@ export default function LandingPage() {
         {/* <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
           Browser native
         </span> */}
-        <h1 className="text-foreground max-w-3xl text-4xl font-semibold tracking-tight md:text-6xl">
+        <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-6xl">
           Host multi-character Grok conversations entirely in your browser.
         </h1>
-        <p className="text-muted max-w-2xl text-lg md:text-xl">
+        <p className="max-w-2xl text-lg text-muted md:text-xl">
           GrokParty Web wraps the Grok API with a friendly interface. Bring your own API key, set
           the roles, stream the banter live, and export transcripts without leaving the browser.
         </p>
       </div>
 
       <div className="flex w-full flex-col items-center gap-6 text-left md:flex-row md:items-stretch">
-        <div className="border-border bg-surface/80 shadow-card w-full rounded-3xl border p-6 md:w-3/5">
-          <h2 className="text-foreground text-lg font-semibold">Get started</h2>
-          <p className="text-muted mt-2 text-sm">
+        <div className="w-full rounded-3xl border border-border bg-surface/80 p-6 shadow-card md:w-3/5">
+          <h2 className="text-lg font-semibold text-foreground">Get started</h2>
+          <p className="mt-2 text-sm text-muted">
             Manage your API key from the menu in the top right. When you are ready, jump into the
             setup flow to configure the scenario and participants.
           </p>
@@ -56,14 +56,12 @@ export default function LandingPage() {
             </Button>
           </div>
         </div>
-        <div className="border-border/80 bg-surface/60 w-full rounded-3xl border border-dashed p-6 text-sm shadow-inner md:w-2/5">
-          <h3 className="text-muted text-xs font-semibold tracking-widest uppercase">
-            API key status
-          </h3>
-          <p className="text-foreground mt-3 text-base font-semibold">
+        <div className="w-full rounded-3xl border border-dashed border-border/80 bg-surface/60 p-6 text-sm shadow-inner md:w-2/5">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">API key status</h3>
+          <p className="mt-3 text-base font-semibold text-foreground">
             {apiKey ? 'Key detected' : 'Key not set'}
           </p>
-          <p className="text-muted mt-2 text-sm">
+          <p className="mt-2 text-sm text-muted">
             {apiKey
               ? rememberApiKey
                 ? 'We will remember this key on this device until you clear it.'
@@ -75,14 +73,11 @@ export default function LandingPage() {
 
       <div className="grid gap-4 text-left md:grid-cols-3">
         {BENEFITS.map((benefit) => (
-          <article
-            key={benefit.title}
-            className="border-border bg-surface/60 rounded-2xl border p-4 shadow-sm"
-          >
-            <h3 className="text-primary text-sm font-semibold tracking-wide uppercase">
+          <article key={benefit.title} className="rounded-2xl border border-border bg-surface/60 p-4 shadow-sm">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-primary">
               {benefit.title}
             </h3>
-            <p className="text-muted mt-2 text-sm">{benefit.description}</p>
+            <p className="mt-2 text-sm text-muted">{benefit.description}</p>
           </article>
         ))}
       </div>

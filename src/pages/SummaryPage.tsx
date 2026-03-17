@@ -15,19 +15,21 @@ export default function SummaryPage() {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
-        <p className="text-primary text-sm font-medium tracking-wide uppercase">Summary</p>
-        <h1 className="text-foreground text-3xl font-semibold">Conversation summary</h1>
-        <p className="text-muted text-base">
+        <p className="text-sm font-medium uppercase tracking-wide text-primary">Summary</p>
+        <h1 className="text-3xl font-semibold text-foreground">Conversation summary</h1>
+        <p className="text-base text-muted">
           Review the session details, export the transcript, or jump back to configuration to start
           a new run.
         </p>
       </header>
 
-      <div className="border-border bg-surface shadow-card rounded-3xl border p-6">
+      <div className="rounded-3xl border border-border bg-surface p-6 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-muted text-sm font-semibold tracking-wide uppercase">Transcript</h2>
-            <p className="text-muted mt-1 text-sm">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+              Transcript
+            </h2>
+            <p className="mt-1 text-sm text-muted">
               {messages.length
                 ? 'Messages below reflect the last conversation session.'
                 : 'Run a conversation to populate a transcript.'}
@@ -35,43 +37,41 @@ export default function SummaryPage() {
           </div>
           <TranscriptActions />
         </div>
-        <div className="border-border bg-surface/70 mt-6 max-h-[50vh] overflow-y-auto rounded-2xl border p-4">
+        <div className="mt-6 max-h-[50vh] overflow-y-auto rounded-2xl border border-border bg-surface/70 p-4">
           {messages.length ? (
-            <ol className="text-foreground space-y-3 text-sm">
+            <ol className="space-y-3 text-sm text-foreground">
               {messages.map((message) => (
                 <li key={message.id}>
-                  <span className="text-foreground font-semibold">
-                    {message.speakerId
-                      ? (participants.get(message.speakerId)?.displayName ?? 'Narrator')
-                      : 'Narrator'}
+                  <span className="font-semibold text-foreground">
+                    {message.speakerId ? participants.get(message.speakerId)?.displayName ?? 'Narrator' : 'Narrator'}
                   </span>
                   : {message.content}
                 </li>
               ))}
             </ol>
           ) : (
-            <p className="text-muted text-sm">No transcript available yet.</p>
+            <p className="text-sm text-muted">No transcript available yet.</p>
           )}
         </div>
       </div>
 
-      <div className="border-border bg-surface shadow-card rounded-3xl border p-6">
-        <h2 className="text-muted text-sm font-semibold tracking-wide uppercase">Configuration</h2>
-        <dl className="text-muted mt-4 grid gap-4 text-sm md:grid-cols-2">
+      <div className="rounded-3xl border border-border bg-surface p-6 shadow-card">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Configuration</h2>
+        <dl className="mt-4 grid gap-4 text-sm text-muted md:grid-cols-2">
           <div>
-            <dt className="text-foreground font-semibold">Type</dt>
+            <dt className="font-semibold text-foreground">Type</dt>
             <dd>{config.conversationType || '—'}</dd>
           </div>
           <div>
-            <dt className="text-foreground font-semibold">Topic</dt>
+            <dt className="font-semibold text-foreground">Topic</dt>
             <dd>{topicDisplay}</dd>
           </div>
           <div>
-            <dt className="text-foreground font-semibold">Setting</dt>
+            <dt className="font-semibold text-foreground">Setting</dt>
             <dd>{settingDisplay}</dd>
           </div>
           <div>
-            <dt className="text-foreground font-semibold">Mood</dt>
+            <dt className="font-semibold text-foreground">Mood</dt>
             <dd>{config.mood || '—'}</dd>
           </div>
         </dl>

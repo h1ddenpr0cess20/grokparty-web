@@ -31,7 +31,7 @@ export function Switch({
       role="switch"
       aria-checked={checked}
       className={clsx(
-        'text-foreground focus-visible:outline-primary inline-flex items-center gap-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+        'inline-flex items-center gap-2 text-sm font-medium text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
         className,
       )}
       onClick={onClick}

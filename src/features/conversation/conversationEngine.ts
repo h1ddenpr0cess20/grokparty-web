@@ -335,9 +335,7 @@ export class ConversationEngine {
     currentSpeaker: Participant;
   }) {
     if (participants.length === 2) {
-      return (
-        participants.find((participant) => participant.id !== currentSpeaker.id) ?? currentSpeaker
-      );
+      return participants.find((participant) => participant.id !== currentSpeaker.id) ?? currentSpeaker;
     }
 
     try {
@@ -410,10 +408,7 @@ export class ConversationEngine {
   }
 }
 
-function buildToolsForParticipant(
-  participant: Participant,
-  config: ConversationConfig,
-): GrokTool[] {
+function buildToolsForParticipant(participant: Participant, config: ConversationConfig): GrokTool[] {
   const tools: GrokTool[] = [];
 
   if (participant.enableCodeInterpreter) {

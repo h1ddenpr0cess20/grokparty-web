@@ -68,9 +68,7 @@ describe('sessionStore', () => {
     expect(config.mood).toBe('friendly');
     expect(config.topic).toBe('');
     expect(config.participants).toHaveLength(2);
-    expect(
-      config.participants.every((participant) => participant.displayName.startsWith('Character')),
-    ).toBe(true);
+    expect(config.participants.every((participant) => participant.displayName.startsWith('Character'))).toBe(true);
   });
 
   it('manages API key with remember flag and clearing', () => {
@@ -88,7 +86,7 @@ describe('sessionStore', () => {
   });
 
   it('creates empty messages with provided overrides', () => {
-    const message = createEmptyMessage({
+const message = createEmptyMessage({
       speakerId: 'p1',
       content: 'hello',
     });
@@ -134,9 +132,7 @@ function readPersistedState() {
     return null;
   }
   try {
-    const parsed = JSON.parse(raw) as {
-      state?: { rememberApiKey?: boolean; apiKey?: string | null };
-    };
+    const parsed = JSON.parse(raw) as { state?: { rememberApiKey?: boolean; apiKey?: string | null } };
     return parsed.state ?? null;
   } catch {
     return null;

@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 const DEFAULT_BASE_URL = import.meta.env.VITE_GROK_API_BASE ?? 'https://api.x.ai/v1';
 
+
 /**
  * Options for constructing a GrokClient instance.
  */
@@ -313,8 +314,7 @@ export class GrokClient {
         const eventType = event.eventName ?? payload.type;
 
         if (eventType === 'response.output_text.delta' || eventType === 'response.delta') {
-          const delta =
-            payload.delta ?? extractDeltaFromOutputs(payload.output ?? payload.response?.output);
+          const delta = payload.delta ?? extractDeltaFromOutputs(payload.output ?? payload.response?.output);
           if (!delta) {
             continue;
           }
@@ -324,17 +324,11 @@ export class GrokClient {
         }
 
         if (eventType === 'response.completed' || eventType === 'response.output_text.completed') {
-          const normalized = normalizeResponsesPayload(
-            payload.response ?? (payload as ResponsesApiResponse),
-          );
-          const message = normalized.choices[0]?.message ?? {
-            role: 'assistant',
-            content: collectedText,
-          };
-          const finalMessage =
-            !message.content?.trim() && collectedText
-              ? { ...message, content: collectedText }
-              : message;
+          const normalized = normalizeResponsesPayload(payload.response ?? (payload as ResponsesApiResponse));
+          const message = normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText };
+          const finalMessage = !message.content?.trim() && collectedText
+            ? { ...message, content: collectedText }
+            : message;
           collectedText = finalMessage.content;
           yield { type: 'message', message: finalMessage };
           completed = true;
@@ -367,10 +361,7 @@ export class GrokClient {
         ],
       });
 
-      const message = normalized.choices[0]?.message ?? {
-        role: 'assistant',
-        content: collectedText,
-      };
+      const message = normalized.choices[0]?.message ?? { role: 'assistant', content: collectedText };
       yield { type: 'message', message };
       completed = true;
     }
@@ -472,9 +463,7 @@ function extractMessageFromOutputs(output?: ResponsesApiOutput[]): GrokChatMessa
     }
   }
 
-  return (
-    fallback ?? { role: (output[output.length - 1]?.role as GrokRole) ?? 'assistant', content: '' }
-  );
+  return fallback ?? { role: (output[output.length - 1]?.role as GrokRole) ?? 'assistant', content: '' };
 }
 
 function deriveFinishReason(output?: ResponsesApiOutput[]): 'stop' | 'incomplete' {

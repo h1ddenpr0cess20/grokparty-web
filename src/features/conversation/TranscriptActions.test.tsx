@@ -3,12 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { TranscriptActions } from './TranscriptActions';
 import { buildTranscriptExport } from './transcriptExport';
 import { resetSessionStore } from '@/test/testUtils';
-import {
-  useSessionStore,
-  createEmptyMessage,
-  type ConversationConfig,
-  type Participant,
-} from '@/state/sessionStore';
+import { useSessionStore, createEmptyMessage, type ConversationConfig, type Participant } from '@/state/sessionStore';
 
 describe('TranscriptActions', () => {
   beforeEach(() => {
@@ -23,12 +18,7 @@ describe('TranscriptActions', () => {
   it('downloads transcript JSON when messages exist', () => {
     const store = useSessionStore.getState();
     store.appendMessage(
-      createEmptyMessage({
-        id: 'msg-1',
-        speakerId: 'p1',
-        content: 'Hello there',
-        status: 'completed',
-      }),
+      createEmptyMessage({ id: 'msg-1', speakerId: 'p1', content: 'Hello there', status: 'completed' }),
     );
 
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
@@ -77,7 +67,9 @@ describe('buildTranscriptExport', () => {
         enableSearch: true,
         enableCodeInterpreter: true,
         enableXSearchTool: true,
-        mcpAccess: [{ serverId: 'srv-1', allowedToolNames: ['search_docs'] }],
+        mcpAccess: [
+          { serverId: 'srv-1', allowedToolNames: ['search_docs'] },
+        ],
       },
       {
         id: 'p2',
@@ -89,7 +81,9 @@ describe('buildTranscriptExport', () => {
         enableSearch: false,
         enableCodeInterpreter: false,
         enableXSearchTool: false,
-        mcpAccess: [{ serverId: 'srv-2', allowedToolNames: [] }],
+        mcpAccess: [
+          { serverId: 'srv-2', allowedToolNames: [] },
+        ],
       },
     ],
   };
@@ -139,9 +133,7 @@ describe('buildTranscriptExport', () => {
     expect(result.extension).toBe('md');
     expect(result.content).toContain('# GrokParty Transcript');
     expect(result.content).toContain('**Conversation Type:** panel');
-    expect(result.content).toContain(
-      '1. **Ada** – grok-4 (Temp: 0.75, Search: Enabled, Code Interpreter: Enabled, X Search Tool: Enabled, MCP: DeepWiki (tools: search_docs))',
-    );
+    expect(result.content).toContain('1. **Ada** – grok-4 (Temp: 0.75, Search: Enabled, Code Interpreter: Enabled, X Search Tool: Enabled, MCP: DeepWiki (tools: search_docs))');
     expect(result.content).toContain('## MCP Servers');
     expect(result.content).toContain('1. **DeepWiki** – https://mcp.deepwiki.com/mcp');
     expect(result.content).toContain('**Ada:** Hello world');
@@ -160,9 +152,7 @@ describe('buildTranscriptExport', () => {
     expect(result.extension).toBe('txt');
     expect(result.content).toContain('GrokParty Transcript');
     expect(result.content).toContain('Conversation Type: panel');
-    expect(result.content).toContain(
-      '1. Ada – grok-4 (Temp: 0.75, Search: Enabled, Code Interpreter: Enabled, X Search Tool: Enabled, MCP: DeepWiki (tools: search_docs))',
-    );
+    expect(result.content).toContain('1. Ada – grok-4 (Temp: 0.75, Search: Enabled, Code Interpreter: Enabled, X Search Tool: Enabled, MCP: DeepWiki (tools: search_docs))');
     expect(result.content).toContain('MCP Servers:');
     expect(result.content).toContain('Ada: Hello world');
   });

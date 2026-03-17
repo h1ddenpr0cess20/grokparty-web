@@ -37,10 +37,10 @@ export function AppLayout() {
   }, [location.pathname, navigate]);
 
   return (
-    <div className="bg-background text-foreground flex min-h-screen flex-col">
-      <header className="border-border/60 bg-surface/80 sticky top-0 z-40 border-b backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-surface/80 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
-          <NavLink to="/" className="text-foreground flex items-center gap-2 text-lg font-semibold">
+          <NavLink to="/" className="flex items-center gap-2 text-lg font-semibold text-foreground">
             GrokParty
           </NavLink>
           <nav className="hidden items-center gap-3 md:flex">
@@ -51,7 +51,9 @@ export function AppLayout() {
                 className={({ isActive }) =>
                   clsx(
                     'rounded-full px-3 py-1.5 text-sm font-medium transition',
-                    isActive ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface/60',
+                    isActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted hover:bg-surface/60',
                   )
                 }
               >
@@ -70,25 +72,25 @@ export function AppLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
-      <footer className="border-border/60 bg-surface/80 border-t">
-        <div className="text-muted mx-auto flex w-full max-w-6xl items-center justify-between p-4 text-xs">
+      <footer className="border-t border-border/60 bg-surface/80">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between p-4 text-xs text-muted">
           <span>© {new Date().getFullYear()} GrokParty</span>
           <div className="flex flex-col items-center">
             <span className="mb-1">
               AI-generated content may contain errors. Verify important information.
             </span>
             <div className="flex gap-3">
-              <a
-                href="https://github.com/h1ddenpr0cess20/grokparty-web/blob/main/docs/ai-output-disclaimer.md"
-                target="_blank"
+              <a 
+                href="https://github.com/h1ddenpr0cess20/grokparty-web/blob/main/docs/ai-output-disclaimer.md" 
+                target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
                 AI disclaimer
               </a>
-              <a
-                href="https://github.com/h1ddenpr0cess20/grokparty-web/blob/main/docs/not-a-companion.md"
-                target="_blank"
+              <a 
+                href="https://github.com/h1ddenpr0cess20/grokparty-web/blob/main/docs/not-a-companion.md" 
+                target="_blank" 
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
@@ -123,7 +125,7 @@ function StatusPill({ status }: { status: string }) {
     <span
       data-testid="session-status"
       className={clsx(
-        'hidden rounded-full px-3 py-1 text-xs font-semibold tracking-wide uppercase md:inline-flex',
+        'hidden rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide md:inline-flex',
         tone,
       )}
     >

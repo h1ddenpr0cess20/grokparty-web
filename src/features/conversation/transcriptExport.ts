@@ -1,9 +1,4 @@
-import type {
-  ConversationConfig,
-  ConversationMessage,
-  Participant,
-  McpServerConfig,
-} from '@/state/sessionStore';
+import type { ConversationConfig, ConversationMessage, Participant, McpServerConfig } from '@/state/sessionStore';
 
 export const TRANSCRIPT_EXPORT_OPTIONS = [
   { value: 'json', label: 'JSON (.json)' },
@@ -116,9 +111,7 @@ function formatAsMarkdown(...[config, messages, participants, exportedAt]: Trans
     : ['_No participants recorded._'];
 
   const mcpServerLines = config.mcpServers.length
-    ? config.mcpServers.map(
-        (server, index) => `${index + 1}. **${server.label || 'Untitled'}** – ${server.url}`,
-      )
+    ? config.mcpServers.map((server, index) => `${index + 1}. **${server.label || 'Untitled'}** – ${server.url}`)
     : [];
 
   const transcriptLines = messages.length
@@ -136,7 +129,9 @@ function formatAsMarkdown(...[config, messages, participants, exportedAt]: Trans
     '',
     ...participantLines,
     '',
-    ...(mcpServerLines.length ? ['## MCP Servers', '', ...mcpServerLines, ''] : []),
+    ...(mcpServerLines.length
+      ? ['## MCP Servers', '', ...mcpServerLines, '']
+      : []),
     '## Transcript',
     '',
     ...transcriptLines,
@@ -173,9 +168,7 @@ function formatAsText(...[config, messages, participants, exportedAt]: Transcrip
     : ['No participants recorded.'];
 
   const mcpServerLines = config.mcpServers.length
-    ? config.mcpServers.map(
-        (server, index) => `${index + 1}. ${server.label || 'Untitled'} – ${server.url}`,
-      )
+    ? config.mcpServers.map((server, index) => `${index + 1}. ${server.label || 'Untitled'} – ${server.url}`)
     : [];
 
   const transcriptLines = messages.length
@@ -191,7 +184,9 @@ function formatAsText(...[config, messages, participants, exportedAt]: Transcrip
     '',
     'Participants:',
     ...participantLines,
-    ...(mcpServerLines.length ? ['', 'MCP Servers:', ...mcpServerLines] : []),
+    ...(mcpServerLines.length
+      ? ['', 'MCP Servers:', ...mcpServerLines]
+      : []),
     '',
     'Transcript:',
     ...transcriptLines,
@@ -211,9 +206,7 @@ function formatAsHtml(...[config, messages, participants, exportedAt]: Transcrip
   ];
 
   const metadataList = metadataEntries
-    .map(
-      (entry) => `<li><strong>${escapeHtml(entry.label)}:</strong> ${escapeHtml(entry.value)}</li>`,
-    )
+    .map((entry) => `<li><strong>${escapeHtml(entry.label)}:</strong> ${escapeHtml(entry.value)}</li>`)
     .join('\n            ');
 
   const participantList = config.participants.length
@@ -241,10 +234,7 @@ function formatAsHtml(...[config, messages, participants, exportedAt]: Transcrip
   const mcpServersList = config.mcpServers.length
     ? `<ol class="mcp-list">
             ${config.mcpServers
-              .map(
-                (server, index) =>
-                  `<li><strong>${index + 1}. ${escapeHtml(server.label || 'Untitled')}</strong> – ${escapeHtml(server.url)}</li>`,
-              )
+              .map((server, index) => `<li><strong>${index + 1}. ${escapeHtml(server.label || 'Untitled')}</strong> – ${escapeHtml(server.url)}</li>`)
               .join('\n            ')}
           </ol>`
     : '<p><em>No MCP servers configured.</em></p>';
@@ -331,10 +321,7 @@ function formatDisplayValue(value?: string | null) {
 
 function formatTemperature(value?: number) {
   if (typeof value === 'number' && Number.isFinite(value)) {
-    const normalized = value
-      .toFixed(2)
-      .replace(/\.00$/, '')
-      .replace(/(\.\d)0$/, '$1');
+    const normalized = value.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
     return normalized;
   }
   return '—';

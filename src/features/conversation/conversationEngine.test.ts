@@ -11,9 +11,7 @@ describe('stripCitationArtifacts', () => {
   });
 
   it('removes markdown image-style citations', () => {
-    expect(stripCitationArtifacts('Look here!\n![3](https://foo.bar)\nNext line')).toBe(
-      'Look here!\n\nNext line',
-    );
+    expect(stripCitationArtifacts('Look here!\n![3](https://foo.bar)\nNext line')).toBe('Look here!\n\nNext line');
   });
 
   it('keeps regular urls intact', () => {

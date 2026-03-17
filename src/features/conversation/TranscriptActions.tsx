@@ -45,7 +45,7 @@ export function TranscriptActions() {
       <select
         id="transcript-format"
         aria-label="Transcript format"
-        className="border-border bg-surface/80 text-foreground shadow-card focus-visible:outline-primary rounded-full border px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="rounded-full border border-border bg-surface/80 px-3 py-2 text-sm text-foreground shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         value={format}
         onChange={(event) => setFormat(event.target.value as TranscriptExportFormat)}
       >
@@ -55,12 +55,7 @@ export function TranscriptActions() {
           </option>
         ))}
       </select>
-      <Button
-        variant="secondary"
-        type="button"
-        onClick={handleDownload}
-        disabled={!messages.length}
-      >
+      <Button variant="secondary" type="button" onClick={handleDownload} disabled={!messages.length}>
         Download transcript
       </Button>
     </div>

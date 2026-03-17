@@ -71,8 +71,7 @@ export function ConversationTranscript() {
       return;
     }
 
-    const prefersReducedMotion =
-      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
     const behavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
     const targetTop = lastMessage ? el.scrollHeight : 0;
 
@@ -80,14 +79,11 @@ export function ConversationTranscript() {
   }, [lastMessageKey, lastMessage, messages.length]);
 
   return (
-    <div
-      ref={containerRef}
-      className="transcript-scroll max-h-[60vh] min-h-72 overflow-y-auto pr-1"
-    >
+    <div ref={containerRef} className="transcript-scroll max-h-[60vh] min-h-72 overflow-y-auto pr-1">
       <ol className="flex flex-col gap-4">
         {messages.length === 0 ? (
           <li>
-            <div className="border-border bg-surface/40 text-muted flex h-full flex-col items-center justify-center rounded-2xl border border-dashed p-10 text-center text-sm">
+            <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface/40 p-10 text-center text-sm text-muted">
               Transcript will appear here once the conversation begins.
             </div>
           </li>
@@ -95,36 +91,27 @@ export function ConversationTranscript() {
           messages.map((message) => {
             const participant = message.speakerId ? participants.get(message.speakerId) : null;
             const isUserMessage = message.role === 'user';
-            const name = isUserMessage ? userDisplayName : (participant?.displayName ?? 'Narrator');
-            const color = isUserMessage ? '#2563eb' : (participant?.color ?? '#334155');
+            const name = isUserMessage ? userDisplayName : participant?.displayName ?? 'Narrator';
+            const color = isUserMessage ? '#2563eb' : participant?.color ?? '#334155';
             const isPendingStatus = message.status === 'pending' || message.status === 'streaming';
             const showStatus = message.status !== 'completed';
             const formattedStatus = isPendingStatus ? null : formatStatus(message.status);
             const isPendingContent = !message.content;
             return (
-              <li
-                key={message.id}
-                className="border-border bg-surface rounded-2xl border p-4 shadow-sm"
-              >
+              <li key={message.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-foreground inline-flex items-center gap-2 text-sm font-semibold">
-                    <span
-                      className="inline-flex size-2 rounded-full"
-                      style={{ backgroundColor: color }}
-                      aria-hidden
-                    />
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <span className="inline-flex size-2 rounded-full" style={{ backgroundColor: color }} aria-hidden />
                     {name}
                   </span>
                   <div className="flex items-center gap-2">
-                    {showStatus ? (
-                      isPendingStatus ? (
-                        <PendingSpinner withLabel={false} />
-                      ) : (
-                        <span className="text-muted text-xs tracking-wide uppercase">
-                          {formattedStatus}
-                        </span>
-                      )
-                    ) : null}
+                    {showStatus
+                      ? isPendingStatus
+                        ? <PendingSpinner withLabel={false} />
+                        : (
+                            <span className="text-xs uppercase tracking-wide text-muted">{formattedStatus}</span>
+                          )
+                      : null}
                     <CopyButton content={message.content ?? ''} disabled={isPendingContent} />
                   </div>
                 </div>
@@ -147,14 +134,14 @@ function MarkdownMessage({
 }) {
   const isPending = !content;
   const highlightEnabled = status === 'completed';
-  const components = useMemo(
-    () => createMarkdownComponents({ highlightEnabled }),
-    [highlightEnabled],
-  );
+  const components = useMemo(() => createMarkdownComponents({ highlightEnabled }), [highlightEnabled]);
 
   return (
     <div
-      className={clsx('markdown-body mt-3 text-sm', isPending ? 'text-muted' : 'text-foreground')}
+      className={clsx(
+        'markdown-body mt-3 text-sm',
+        isPending ? 'text-muted' : 'text-foreground',
+      )}
     >
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content || ''}
@@ -169,13 +156,7 @@ type MarkdownCodeProps = HTMLAttributes<HTMLElement> & {
   highlightEnabled: boolean;
 };
 
-const MarkdownCode = ({
-  inline,
-  className,
-  children,
-  highlightEnabled,
-  ...props
-}: MarkdownCodeProps) => {
+const MarkdownCode = ({ inline, className, children, highlightEnabled, ...props }: MarkdownCodeProps) => {
   const codeText = useMemo(() => extractCodeText(children), [children]);
   const language = useMemo(() => {
     if (!className) {
@@ -187,10 +168,7 @@ const MarkdownCode = ({
 
   if (inline) {
     return (
-      <code
-        className={clsx('bg-border/30 rounded-md px-1.5 py-0.5 font-mono text-xs', className)}
-        {...props}
-      >
+      <code className={clsx('rounded-md bg-border/30 px-1.5 py-0.5 font-mono text-xs', className)} {...props}>
         {children}
       </code>
     );
@@ -228,7 +206,7 @@ function createMarkdownComponents({ highlightEnabled }: { highlightEnabled: bool
     a: ({ children, ...props }) => (
       <a
         {...props}
-        className="text-primary decoration-primary/40 hover:decoration-primary underline underline-offset-2"
+        className="text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
         target="_blank"
         rel="noreferrer"
       >
@@ -246,7 +224,12 @@ function createMarkdownComponents({ highlightEnabled }: { highlightEnabled: bool
 
       if (isCitation) {
         return (
-          <a href={src} target="_blank" rel="noreferrer" className="citation-link">
+          <a
+            href={src}
+            target="_blank"
+            rel="noreferrer"
+            className="citation-link"
+          >
             [{label}]
           </a>
         );
@@ -293,7 +276,7 @@ function CopyButton({ content, disabled }: { content: string; disabled: boolean 
   return (
     <button
       type="button"
-      className="text-muted hover:text-foreground focus-visible:outline-primary inline-flex size-8 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-40"
+      className="inline-flex size-8 items-center justify-center rounded-full text-muted transition hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40"
       aria-label={disabled ? 'Message not ready to copy yet' : 'Copy message to clipboard'}
       title={disabled ? 'Message not ready to copy yet' : 'Copy message to clipboard'}
       onClick={handleCopy}
@@ -328,7 +311,7 @@ function CopyCodeButton({ content }: { content: string }) {
     return null;
   }
   return (
-    <div className="absolute top-3 right-3">
+    <div className="absolute right-3 top-3">
       <CopyButton content={content} disabled={false} />
     </div>
   );
@@ -405,8 +388,15 @@ function extractCodeText(children: ReactNode): string {
 
 function PendingSpinner({ withLabel = true }: { withLabel?: boolean }) {
   return (
-    <span className={clsx('text-muted inline-flex items-center', withLabel ? 'gap-3' : 'gap-1')}>
-      <span className={clsx('inline-flex items-center', withLabel ? 'gap-1' : 'gap-0.5')}>
+    <span
+      className={clsx(
+        'inline-flex items-center text-muted',
+        withLabel ? 'gap-3' : 'gap-1',
+      )}
+    >
+      <span
+        className={clsx('inline-flex items-center', withLabel ? 'gap-1' : 'gap-0.5')}
+      >
         {[0, 1, 2].map((index) => (
           <span
             key={index}
@@ -417,7 +407,7 @@ function PendingSpinner({ withLabel = true }: { withLabel?: boolean }) {
         ))}
       </span>
       {withLabel ? (
-        <span className="text-xs font-semibold tracking-wide uppercase">Typing</span>
+        <span className="text-xs font-semibold uppercase tracking-wide">Typing</span>
       ) : null}
       <span className="sr-only">Waiting for response</span>
     </span>
