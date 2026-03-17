@@ -35,6 +35,7 @@ export function ConversationControls() {
 
   useEffect(() => {
     if (status === 'idle' || status === 'completed' || status === 'error') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset UI on session end
       setInterjecting(false);
       setInterjectionDraft('');
     }
@@ -97,13 +98,13 @@ export function ConversationControls() {
         <Button variant="ghost" onClick={() => stop()} disabled={!running}>
           Stop
         </Button>
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">{status}</span>
+        <span className="text-muted text-xs font-semibold tracking-wide uppercase">{status}</span>
       </div>
 
       {interjecting ? (
-        <div className="w-full rounded-2xl border border-border bg-surface/60 p-4 shadow-sm">
+        <div className="border-border bg-surface/60 w-full rounded-2xl border p-4 shadow-sm">
           <div className="flex flex-col gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+            <span className="text-muted text-xs font-semibold tracking-wide uppercase">
               Your interjection
             </span>
             <Textarea
@@ -121,7 +122,7 @@ export function ConversationControls() {
                 Cancel
               </Button>
               {waitingForPause ? (
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                <span className="text-muted text-xs font-semibold tracking-wide uppercase">
                   Waiting for pause…
                 </span>
               ) : null}

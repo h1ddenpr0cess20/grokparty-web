@@ -17,7 +17,8 @@ interface UiState {
 export const useUiStore = create<UiState>((set) => ({
   isApiKeyMenuOpen: false,
   isMcpMenuOpen: false,
-  openApiKeyMenu: () => set((state) => ({ ...state, isApiKeyMenuOpen: true, isMcpMenuOpen: false })),
+  openApiKeyMenu: () =>
+    set((state) => ({ ...state, isApiKeyMenuOpen: true, isMcpMenuOpen: false })),
   closeApiKeyMenu: () => set((state) => ({ ...state, isApiKeyMenuOpen: false })),
   toggleApiKeyMenu: () =>
     set((state) => ({

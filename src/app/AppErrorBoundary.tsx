@@ -32,10 +32,11 @@ export class AppErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-center">
-          <h1 className="text-3xl font-semibold text-danger">We ran into a problem.</h1>
-          <p className="mt-2 max-w-xl text-muted">
-            Try refreshing the page. If the issue persists, please file a bug with the steps you took.
+        <div className="bg-background flex min-h-screen flex-col items-center justify-center px-6 text-center">
+          <h1 className="text-danger text-3xl font-semibold">We ran into a problem.</h1>
+          <p className="text-muted mt-2 max-w-xl">
+            Try refreshing the page. If the issue persists, please file a bug with the steps you
+            took.
           </p>
         </div>
       );

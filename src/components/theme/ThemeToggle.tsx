@@ -33,7 +33,7 @@ export function ThemeToggle() {
     >
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-medium text-foreground shadow-sm transition hover:bg-surface/80"
+        className="border-border bg-surface text-foreground hover:bg-surface/80 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium shadow-sm transition"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
@@ -45,7 +45,7 @@ export function ThemeToggle() {
       {open ? (
         <ul
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-xl border border-border bg-surface shadow-card"
+          className="border-border bg-surface shadow-card absolute right-0 z-50 mt-2 w-36 overflow-hidden rounded-xl border"
         >
           {OPTIONS.map((option) => (
             <li key={option.value}>
@@ -57,11 +57,13 @@ export function ThemeToggle() {
                   setPreference(option.value);
                   setOpen(false);
                 }}
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm text-foreground hover:bg-primary/10"
+                className="text-foreground hover:bg-primary/10 flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
               >
                 <span>{option.label}</span>
                 {preference === option.value ? (
-                  <span aria-hidden className="text-primary">•</span>
+                  <span aria-hidden className="text-primary">
+                    •
+                  </span>
                 ) : null}
               </button>
             </li>

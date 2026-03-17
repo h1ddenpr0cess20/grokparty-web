@@ -23,6 +23,8 @@ export function McpServersMenu() {
     if (!isMcpMenuOpen) {
       return;
     }
+    // Sync external config into local draft state when the menu opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setServers(serversInConfig.length ? serversInConfig.map((server) => ({ ...server })) : []);
   }, [isMcpMenuOpen, serversInConfig]);
 
@@ -74,7 +76,9 @@ export function McpServersMenu() {
   };
 
   const handleServerChange = (id: string, patch: Partial<ServerDraft>) => {
-    setServers((prev) => prev.map((server) => (server.id === id ? { ...server, ...patch } : server)));
+    setServers((prev) =>
+      prev.map((server) => (server.id === id ? { ...server, ...patch } : server)),
+    );
   };
 
   const handleSave = () => {
@@ -130,29 +134,29 @@ export function McpServersMenu() {
       <button
         type="button"
         onClick={toggleMcpMenu}
-        className="flex items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-1 text-sm font-medium text-foreground shadow-sm transition hover:border-border hover:bg-surface/80"
+        className="border-border/70 bg-surface text-foreground hover:border-border hover:bg-surface/80 flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium shadow-sm transition"
       >
         MCP servers
-        <span className="text-xs text-muted">{serversInConfig.length}</span>
+        <span className="text-muted text-xs">{serversInConfig.length}</span>
       </button>
       {isMcpMenuOpen ? (
         <div
           ref={panelRef}
           role="dialog"
           aria-modal="false"
-          className="absolute right-0 top-full z-50 mt-2 w-[22rem] rounded-3xl border border-border bg-surface p-5 text-left shadow-2xl"
+          className="border-border bg-surface absolute top-full right-0 z-50 mt-2 w-[22rem] rounded-3xl border p-5 text-left shadow-2xl"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-foreground">Model Context Protocol</h2>
-              <p className="mt-1 text-xs text-muted">
+              <h2 className="text-foreground text-base font-semibold">Model Context Protocol</h2>
+              <p className="text-muted mt-1 text-xs">
                 Add shared servers that characters can call when their MCP access is enabled.
               </p>
               <a
                 href={MCP_DOCS_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex text-xs font-semibold text-primary transition hover:text-primary/80"
+                className="text-primary hover:text-primary/80 mt-2 inline-flex text-xs font-semibold transition"
               >
                 Learn about MCP
               </a>
@@ -167,21 +171,25 @@ export function McpServersMenu() {
               servers.map((server) => (
                 <div
                   key={server.id}
-                  className="rounded-xl border border-border/70 bg-surface/70 p-3 text-sm shadow-sm"
+                  className="border-border/70 bg-surface/70 rounded-xl border p-3 text-sm shadow-sm"
                 >
                   <div className="grid gap-2">
                     <FormField label="Server label" required>
                       <Input
                         value={server.label}
                         placeholder="example"
-                        onChange={(event) => handleServerChange(server.id, { label: event.target.value })}
+                        onChange={(event) =>
+                          handleServerChange(server.id, { label: event.target.value })
+                        }
                       />
                     </FormField>
                     <FormField label="Server URL" required>
                       <Input
                         value={server.url}
                         placeholder="https://mcp.example.com/mcp"
-                        onChange={(event) => handleServerChange(server.id, { url: event.target.value })}
+                        onChange={(event) =>
+                          handleServerChange(server.id, { url: event.target.value })
+                        }
                       />
                     </FormField>
                   </div>
@@ -198,7 +206,7 @@ export function McpServersMenu() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted">No servers configured yet.</p>
+              <p className="text-muted text-sm">No servers configured yet.</p>
             )}
           </div>
 
@@ -217,8 +225,9 @@ export function McpServersMenu() {
 }
 
 function createServerDraft(): ServerDraft {
-  const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return { id, label: '', url: '' };
 }

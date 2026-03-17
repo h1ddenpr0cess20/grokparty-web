@@ -25,13 +25,13 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className={clsx('flex flex-col gap-2', className)}>
-      <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
+      <label htmlFor={htmlFor} className="text-foreground text-sm font-medium">
         {label}
         {required ? <span className="text-danger"> *</span> : null}
       </label>
-      {description ? <p className="text-sm text-muted">{description}</p> : null}
+      {description ? <p className="text-muted text-sm">{description}</p> : null}
       {children}
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {error ? <p className="text-danger text-sm">{error}</p> : null}
     </div>
   );
 }

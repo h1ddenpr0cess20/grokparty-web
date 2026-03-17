@@ -187,7 +187,7 @@ describe('GrokClient', () => {
             content: [
               {
                 type: 'tool_result',
-                text: 'Searching the web...'
+                text: 'Searching the web...',
               },
             ],
           },

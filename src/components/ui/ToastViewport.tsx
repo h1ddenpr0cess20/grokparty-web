@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { useToastStore } from '@/state/toastStore';
 
 const VARIANT_CLASSES: Record<string, string> = {
-  info:
-    'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-200',
+  info: 'border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-400/40 dark:bg-sky-500/10 dark:text-sky-200',
   success:
     'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-400/40 dark:bg-emerald-500/10 dark:text-emerald-200',
   warning:
@@ -36,7 +35,7 @@ export function ToastViewport() {
   }
 
   return (
-    <ol className="pointer-events-none fixed bottom-6 right-6 z-50 flex w-full max-w-sm flex-col gap-3">
+    <ol className="pointer-events-none fixed right-6 bottom-6 z-50 flex w-full max-w-sm flex-col gap-3">
       {toasts.map((toast) => (
         <li
           key={toast.id}
@@ -48,7 +47,7 @@ export function ToastViewport() {
           <p className="text-sm leading-5">{toast.description}</p>
           <button
             type="button"
-            className="mt-2 text-xs font-semibold text-foreground underline"
+            className="text-foreground mt-2 text-xs font-semibold underline"
             onClick={() => dismiss(toast.id)}
           >
             Dismiss
