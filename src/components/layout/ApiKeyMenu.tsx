@@ -29,6 +29,7 @@ export function ApiKeyMenu() {
     }
 
     const incomingKey = apiKey ?? '';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync external state on menu open
     setKeyValue((current) => (current === incomingKey ? current : incomingKey));
     setRemember((current) => (current === rememberApiKey ? current : rememberApiKey));
   }, [apiKey, isApiKeyMenuOpen, rememberApiKey]);
@@ -95,14 +96,14 @@ export function ApiKeyMenu() {
       <button
         type="button"
         onClick={toggleApiKeyMenu}
-        className="flex items-center gap-2 rounded-full border border-border/70 bg-surface px-3 py-1 text-sm font-medium text-foreground shadow-sm transition hover:border-border hover:bg-surface/80"
+        className="border-border/70 bg-surface text-foreground hover:border-border hover:bg-surface/80 flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium shadow-sm transition"
       >
         API key
         <span
           className={
             apiKey
-              ? 'inline-flex size-2 rounded-full bg-success'
-              : 'inline-flex size-2 rounded-full bg-danger'
+              ? 'bg-success inline-flex size-2 rounded-full'
+              : 'bg-danger inline-flex size-2 rounded-full'
           }
           aria-hidden="true"
         />
@@ -112,19 +113,19 @@ export function ApiKeyMenu() {
           ref={panelRef}
           role="dialog"
           aria-modal="false"
-          className="absolute right-0 top-full z-50 mt-2 w-80 rounded-3xl border border-border bg-surface p-5 text-left shadow-2xl"
+          className="border-border bg-surface absolute top-full right-0 z-50 mt-2 w-80 rounded-3xl border p-5 text-left shadow-2xl"
         >
           <div className="flex items-baseline justify-between">
             <div>
-              <h2 className="text-base font-semibold text-foreground">Grok API key</h2>
-              <p className="mt-1 text-xs text-muted">
+              <h2 className="text-foreground text-base font-semibold">Grok API key</h2>
+              <p className="text-muted mt-1 text-xs">
                 The key stays on this device and is never sent anywhere else.
               </p>
               <a
                 href={GROK_SIGNUP_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-flex text-xs font-semibold text-primary transition hover:text-primary/80"
+                className="text-primary hover:text-primary/80 mt-2 inline-flex text-xs font-semibold transition"
               >
                 Need one? Sign up for Grok API access
               </a>
@@ -143,7 +144,7 @@ export function ApiKeyMenu() {
                     durationMs: 3500,
                   });
                 }}
-                className="text-xs font-semibold text-danger underline"
+                className="text-danger text-xs font-semibold underline"
               >
                 Clear
               </button>

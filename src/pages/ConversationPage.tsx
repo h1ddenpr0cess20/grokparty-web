@@ -12,8 +12,10 @@ export default function ConversationPage() {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
-        <p className="text-sm font-medium uppercase tracking-wide text-primary">Live conversation</p>
-        <p className="text-base text-muted">
+        <p className="text-primary text-sm font-medium tracking-wide uppercase">
+          Live conversation
+        </p>
+        <p className="text-muted text-base">
           Launch the conversation to watch participants trade messages in real time. Pause, resume,
           and stop at any point.
         </p>
@@ -22,34 +24,34 @@ export default function ConversationPage() {
       <section className="grid gap-6 md:grid-cols-[2fr,1fr]">
         <div className="flex flex-col gap-4">
           <ConversationControls />
-          <div className="space-y-4 rounded-3xl border border-border bg-surface p-6 shadow-card">
+          <div className="border-border bg-surface shadow-card space-y-4 rounded-3xl border p-6">
             <TranscriptActions />
             <ConversationTranscript />
           </div>
         </div>
-        <aside className="flex flex-col gap-4 rounded-3xl border border-border bg-surface p-6 shadow-card">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+        <aside className="border-border bg-surface shadow-card flex flex-col gap-4 rounded-3xl border p-6">
+          <h2 className="text-muted text-sm font-semibold tracking-wide uppercase">
             Session details
           </h2>
-          <dl className="space-y-3 text-sm text-muted">
+          <dl className="text-muted space-y-3 text-sm">
             <div>
-              <dt className="font-semibold text-foreground">Type</dt>
+              <dt className="text-foreground font-semibold">Type</dt>
               <dd>{config.conversationType || '—'}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-foreground">Topic</dt>
+              <dt className="text-foreground font-semibold">Topic</dt>
               <dd>{topicDisplay}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-foreground">Setting</dt>
+              <dt className="text-foreground font-semibold">Setting</dt>
               <dd>{settingDisplay}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-foreground">Mood</dt>
+              <dt className="text-foreground font-semibold">Mood</dt>
               <dd>{config.mood || '—'}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-foreground">Participants</dt>
+              <dt className="text-foreground font-semibold">Participants</dt>
               <dd>
                 <ul className="space-y-1">
                   {config.participants.map((participant) => (

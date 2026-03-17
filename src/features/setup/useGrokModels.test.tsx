@@ -16,9 +16,7 @@ describe('useGrokModels', () => {
     const listModels = vi.fn();
     const client = createMockClient({ listModels });
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <GrokClientContext.Provider value={client}>
-        {children}
-      </GrokClientContext.Provider>
+      <GrokClientContext.Provider value={client}>{children}</GrokClientContext.Provider>
     );
 
     const { result } = renderHook(() => useGrokModels(), { wrapper });
@@ -32,16 +30,12 @@ describe('useGrokModels', () => {
     resetSessionStore();
     useSessionStore.getState().setApiKey('sk-test', { remember: false });
 
-    const models: GrokModel[] = [
-      { id: 'grok-custom', name: 'Grok Custom' },
-    ];
+    const models: GrokModel[] = [{ id: 'grok-custom', name: 'Grok Custom' }];
     const listModels = vi.fn(async () => models);
 
     const client = createMockClient({ listModels });
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <GrokClientContext.Provider value={client}>
-        {children}
-      </GrokClientContext.Provider>
+      <GrokClientContext.Provider value={client}>{children}</GrokClientContext.Provider>
     );
 
     const { result } = renderHook(() => useGrokModels(), { wrapper });
@@ -66,9 +60,7 @@ describe('useGrokModels', () => {
 
     const client = createMockClient({ listModels });
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <GrokClientContext.Provider value={client}>
-        {children}
-      </GrokClientContext.Provider>
+      <GrokClientContext.Provider value={client}>{children}</GrokClientContext.Provider>
     );
 
     const { result } = renderHook(() => useGrokModels(), { wrapper });

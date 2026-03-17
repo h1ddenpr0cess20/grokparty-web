@@ -83,7 +83,12 @@ const WIZARD_SCHEMA: z.ZodType<WizardValues> = z.object({
   participants: z.array(PARTICIPANT_SCHEMA).min(2, 'At least two participants are required'),
 });
 
-const WIZARD_RESOLVER = zodResolver(WIZARD_SCHEMA as any) as Resolver<WizardValues, undefined, WizardValues>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- zod v4 types don't align with react-hook-form's resolver signature
+const WIZARD_RESOLVER = zodResolver(WIZARD_SCHEMA as any) as Resolver<
+  WizardValues,
+  undefined,
+  WizardValues
+>;
 
 const STEP_SEQUENCE = [
   { id: 'scenario', label: 'Scenario' },
@@ -130,7 +135,11 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
     defaultValues: mapConfigToForm(config),
   });
 
-  const { fields: participantFields, append: appendParticipant, remove: removeParticipant } = useFieldArray({
+  const {
+    fields: participantFields,
+    append: appendParticipant,
+    remove: removeParticipant,
+  } = useFieldArray({
     control: form.control,
     name: 'participants',
   });
@@ -157,7 +166,6 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
     }
   };
 
-
   const handleSubmit = form.handleSubmit((values) => {
     const topic = values.topic || 'anything';
     const setting = values.setting || 'anywhere';
@@ -173,7 +181,9 @@ export function SetupWizard({ onCompleted }: SetupWizardProps) {
     const normalizedParticipants: ParticipantInput[] = values.participants.map((participant) => {
       const normalizedAccess: ParticipantMcpAccess[] = participant.mcpAccess.map((access) => ({
         serverId: access.serverId,
-        allowedToolNames: access.allowedToolNames.map((toolName) => toolName.trim()).filter(Boolean),
+        allowedToolNames: access.allowedToolNames
+          .map((toolName) => toolName.trim())
+          .filter(Boolean),
       }));
 
       return {
@@ -258,7 +268,7 @@ function ScenarioStep({ form }: ScenarioStepProps) {
       <FormField label="Conversation type" required error={errors.conversationType?.message}>
         <select
           {...register('conversationType')}
-          className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none"
+          className="border-border bg-surface text-foreground focus:border-primary w-full rounded-lg border px-4 py-2 text-sm shadow-sm focus:outline-none"
         >
           {DEFAULT_TYPES.map((type) => (
             <option key={type} value={type}>
@@ -270,7 +280,7 @@ function ScenarioStep({ form }: ScenarioStepProps) {
       <FormField label="Mood" required error={errors.mood?.message}>
         <select
           {...register('mood')}
-          className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none"
+          className="border-border bg-surface text-foreground focus:border-primary w-full rounded-lg border px-4 py-2 text-sm shadow-sm focus:outline-none"
         >
           {DEFAULT_MOODS.map((mood) => (
             <option key={mood} value={mood}>
@@ -341,7 +351,10 @@ function ParticipantsStep({
   } = form;
   const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({});
   const decisionField = register('decisionModel');
-  const modelOptions = useMemo(() => models.map((m) => ({ value: m.id, label: m.name ?? m.id })), [models]);
+  const modelOptions = useMemo(
+    () => models.map((m) => ({ value: m.id, label: m.name ?? m.id })),
+    [models],
+  );
 
   const togglePanel = (id: string) => {
     setExpandedPanels((prev) => ({
@@ -401,7 +414,7 @@ function ParticipantsStep({
         >
           <select
             {...decisionField}
-            className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none"
+            className="border-border bg-surface text-foreground focus:border-primary w-full rounded-lg border px-4 py-2 text-sm shadow-sm focus:outline-none"
           >
             {modelOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -415,7 +428,7 @@ function ParticipantsStep({
         </Button>
       </div>
       {modelsStatus === 'error' ? (
-        <p className="text-sm text-warning">
+        <p className="text-warning text-sm">
           Unable to reach the Grok API right now. Showing a fallback model list.
         </p>
       ) : null}
@@ -425,13 +438,17 @@ function ParticipantsStep({
           const participantErrors = errors.participants?.[index];
           const temperatureFieldName = `participants.${index}.temperature` as const;
           const temperatureField = register(temperatureFieldName, { valueAsNumber: true });
-          const temperatureValue = form.watch(temperatureFieldName) ?? DEFAULT_PARTICIPANT_TEMPERATURE;
+          const temperatureValue =
+            form.watch(temperatureFieldName) ?? DEFAULT_PARTICIPANT_TEMPERATURE;
           const participantAccess = getMcpAccess(index);
           const isExpanded = expandedPanels[field.id] ?? false;
           return (
-            <div key={field.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+            <div
+              key={field.id}
+              className="border-border bg-surface rounded-2xl border p-4 shadow-sm"
+            >
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                <h3 className="text-muted text-sm font-semibold tracking-wide uppercase">
                   Participant {index + 1}
                 </h3>
                 {fields.length > 2 ? (
@@ -451,7 +468,7 @@ function ParticipantsStep({
                 <FormField label="Model" required error={participantErrors?.model?.message}>
                   <select
                     {...register(`participants.${index}.model` as const)}
-                    className="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none"
+                    className="border-border bg-surface text-foreground focus:border-primary w-full rounded-lg border px-4 py-2 text-sm shadow-sm focus:outline-none"
                   >
                     {modelOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -464,14 +481,14 @@ function ParticipantsStep({
               <div className="mt-4">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-2xl border border-border bg-border/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted transition hover:text-foreground"
+                  className="border-border bg-border/10 text-muted hover:text-foreground flex w-full items-center justify-between rounded-2xl border px-4 py-2 text-xs font-semibold tracking-wide uppercase transition"
                   onClick={() => togglePanel(field.id)}
                 >
                   Character settings
                   <ChevronIcon expanded={isExpanded} />
                 </button>
                 {isExpanded ? (
-                  <div className="mt-3 rounded-2xl border border-dashed border-border/80 bg-border/5 p-4">
+                  <div className="border-border/80 bg-border/5 mt-3 rounded-2xl border border-dashed p-4">
                     <div className="space-y-4">
                       <FormField
                         label="Creativity (temperature)"
@@ -486,7 +503,7 @@ function ParticipantsStep({
                           className="w-full"
                           {...temperatureField}
                         />
-                        <p className="text-sm text-muted">{temperatureValue.toFixed(1)}</p>
+                        <p className="text-muted text-sm">{temperatureValue.toFixed(1)}</p>
                       </FormField>
                       <Controller
                         control={control}
@@ -537,27 +554,36 @@ function ParticipantsStep({
                         )}
                       />
                       <div className="space-y-2">
-                        <p className="text-sm font-semibold text-foreground">MCP access</p>
+                        <p className="text-foreground text-sm font-semibold">MCP access</p>
                         {availableServers.length ? (
                           <div className="space-y-3">
                             {availableServers.map((server) => {
                               if (!server?.id) {
                                 return null;
                               }
-                              const accessEntry = participantAccess.find((entry) => entry.serverId === server.id);
+                              const accessEntry = participantAccess.find(
+                                (entry) => entry.serverId === server.id,
+                              );
                               const hasAccess = Boolean(accessEntry);
                               const allowedNames = accessEntry?.allowedToolNames?.join(', ') ?? '';
                               return (
-                                <div key={server.id} className="rounded-xl border border-border/70 bg-surface/80 p-3">
+                                <div
+                                  key={server.id}
+                                  className="border-border/70 bg-surface/80 rounded-xl border p-3"
+                                >
                                   <div className="flex flex-col gap-2">
                                     <div className="flex items-center justify-between gap-3">
                                       <div>
-                                        <p className="text-sm font-semibold text-foreground">{server.label || 'Untitled server'}</p>
-                                        <p className="break-all text-xs text-muted">{server.url}</p>
+                                        <p className="text-foreground text-sm font-semibold">
+                                          {server.label || 'Untitled server'}
+                                        </p>
+                                        <p className="text-muted text-xs break-all">{server.url}</p>
                                       </div>
                                       <Switch
                                         checked={hasAccess}
-                                        onClick={() => toggleServerAccess(index, server.id, hasAccess)}
+                                        onClick={() =>
+                                          toggleServerAccess(index, server.id, hasAccess)
+                                        }
                                         label={hasAccess ? 'Enabled' : 'Disabled'}
                                       />
                                     </div>
@@ -570,7 +596,11 @@ function ParticipantsStep({
                                           value={allowedNames}
                                           placeholder="tool_a, tool_b"
                                           onChange={(event) =>
-                                            updateAllowedToolNames(index, server.id, event.target.value)
+                                            updateAllowedToolNames(
+                                              index,
+                                              server.id,
+                                              event.target.value,
+                                            )
                                           }
                                         />
                                       </FormField>
@@ -581,7 +611,7 @@ function ParticipantsStep({
                             })}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted">
+                          <p className="text-muted text-sm">
                             Configure MCP servers from the header menu to enable tool access.
                           </p>
                         )}
@@ -611,9 +641,10 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
     typeof legacyConfig.enableSearch === 'boolean'
       ? legacyConfig.enableSearch
       : DEFAULT_PARTICIPANT_ENABLE_SEARCH;
-  const participants = (config.participants.length
-    ? config.participants
-    : [createEmptyParticipant(decisionModel), createEmptyParticipant(decisionModel)]
+  const participants = (
+    config.participants.length
+      ? config.participants
+      : [createEmptyParticipant(decisionModel), createEmptyParticipant(decisionModel)]
   ).map((participant) => {
     const partialParticipant = participant as Partial<Participant>;
     return {
@@ -638,9 +669,7 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
       mcpAccess: Array.isArray(partialParticipant.mcpAccess)
         ? partialParticipant.mcpAccess.map((access) => ({
             serverId: access.serverId,
-            allowedToolNames: Array.isArray(access.allowedToolNames)
-              ? access.allowedToolNames
-              : [],
+            allowedToolNames: Array.isArray(access.allowedToolNames) ? access.allowedToolNames : [],
           }))
         : [],
     };
@@ -661,7 +690,9 @@ function mapConfigToForm(config: ConversationConfig): WizardValues {
   };
 }
 
-function createEmptyParticipant(defaultModel: string | undefined): WizardValues['participants'][number] {
+function createEmptyParticipant(
+  defaultModel: string | undefined,
+): WizardValues['participants'][number] {
   return {
     id: createId(),
     persona: '',
@@ -688,7 +719,10 @@ function createId() {
 function ChevronIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
-      className={clsx('size-4 transition-transform', expanded ? 'rotate-180 text-foreground' : 'text-muted')}
+      className={clsx(
+        'size-4 transition-transform',
+        expanded ? 'text-foreground rotate-180' : 'text-muted',
+      )}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

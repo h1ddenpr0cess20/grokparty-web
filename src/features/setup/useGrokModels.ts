@@ -52,6 +52,7 @@ export function useGrokModels() {
   }, [apiKey, client]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async data fetch
     fetchModels();
     return () => {
       inFlight.current?.abort();

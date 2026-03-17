@@ -167,7 +167,9 @@ function withDefaultParticipants(config: ConversationConfig): ConversationConfig
       color: participant.color ?? PARTICIPANT_COLORS[index % PARTICIPANT_COLORS.length],
       temperature: normalizeTemperature(partialParticipant.temperature),
       enableSearch: normalizeEnableSearch(partialParticipant.enableSearch, legacyEnableSearch),
-      enableCodeInterpreter: normalizeEnableCodeInterpreter(partialParticipant.enableCodeInterpreter),
+      enableCodeInterpreter: normalizeEnableCodeInterpreter(
+        partialParticipant.enableCodeInterpreter,
+      ),
       enableXSearchTool: normalizeEnableXSearchTool(partialParticipant.enableXSearchTool),
       mcpAccess: normalizeParticipantMcpAccess(partialParticipant.mcpAccess, allowedServerIds),
     };
@@ -279,7 +281,8 @@ export const useSessionStore = create<ConversationSessionState>()(
           config: withDefaultParticipants(clone(DEFAULT_CONFIG)),
         }),
 
-      setStatus: (status) => set({ status, lastError: status === 'error' ? get().lastError : null }),
+      setStatus: (status) =>
+        set({ status, lastError: status === 'error' ? get().lastError : null }),
 
       setSessionId: (sessionId) => set({ sessionId }),
 
@@ -320,7 +323,7 @@ export const useSessionStore = create<ConversationSessionState>()(
       merge: (persisted, current) => {
         const persistedState = (persisted as Partial<ConversationSessionState>) ?? {};
         const rememberApiKey = persistedState.rememberApiKey ?? current.rememberApiKey;
-        const apiKey = rememberApiKey ? persistedState.apiKey ?? current.apiKey : null;
+        const apiKey = rememberApiKey ? (persistedState.apiKey ?? current.apiKey) : null;
         const persistedServers = persistedState.config?.mcpServers;
         const config = Array.isArray(persistedServers)
           ? withDefaultParticipants({ ...current.config, mcpServers: persistedServers })
@@ -433,21 +436,30 @@ function normalizeTemperature(value: unknown): number {
   return DEFAULT_PARTICIPANT_TEMPERATURE;
 }
 
-function normalizeEnableSearch(value: unknown, fallback = DEFAULT_PARTICIPANT_ENABLE_SEARCH): boolean {
+function normalizeEnableSearch(
+  value: unknown,
+  fallback = DEFAULT_PARTICIPANT_ENABLE_SEARCH,
+): boolean {
   if (typeof value === 'boolean') {
     return value;
   }
   return fallback;
 }
 
-function normalizeEnableCodeInterpreter(value: unknown, fallback = DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER): boolean {
+function normalizeEnableCodeInterpreter(
+  value: unknown,
+  fallback = DEFAULT_PARTICIPANT_ENABLE_CODE_INTERPRETER,
+): boolean {
   if (typeof value === 'boolean') {
     return value;
   }
   return fallback;
 }
 
-function normalizeEnableXSearchTool(value: unknown, fallback = DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL): boolean {
+function normalizeEnableXSearchTool(
+  value: unknown,
+  fallback = DEFAULT_PARTICIPANT_ENABLE_X_SEARCH_TOOL,
+): boolean {
   if (typeof value === 'boolean') {
     return value;
   }
